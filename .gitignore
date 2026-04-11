@@ -1,0 +1,11 @@
+**/__pycache__/
+.DS_Store
+.idea/
+.vscode/
+*.py[cod]
+.env
+*.log
+.ipynb_checkpoints/
+old_files/
+venv/
+data/seed.*
