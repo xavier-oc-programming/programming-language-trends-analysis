@@ -169,6 +169,8 @@ programming-language-trends-analysis/
 
 100 Days of Code: The Complete Python Pro Bootcamp — Day 73 — topics: Pandas groupby/pivot, datetime parsing, Matplotlib multi-line charts, rolling averages.
 
+See [docs/COURSE_NOTES.md](docs/COURSE_NOTES.md) for the original exercise brief and key concepts.
+
 ---
 
 ## 9. Dependencies
