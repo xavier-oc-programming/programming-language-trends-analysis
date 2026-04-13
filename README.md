@@ -40,24 +40,27 @@ Open `practice/A_01_Programming_Languages_Analysis.ipynb` first to follow the fu
 ## 2. Analysis flow
 
 ```
-data/QueryResults.csv
-        │
-        ▼
-pd.read_csv()  →  DataFrame (2901 rows × 3 cols)
-        │
-        ├── df.columns = ['DATE', 'TAG', 'POSTS']
-        ├── pd.to_datetime(df.DATE)      →  datetime index
-        ├── groupby('TAG')['POSTS'].sum() →  all-time totals per language
-        ├── groupby('TAG')['DATE'].count() →  months of data per language
-        │
-        ▼
-df.pivot(index='DATE', columns='TAG', values='POSTS')
-        │
-        ├── fillna(0)                    →  wide_df (210 rows × 14 cols)
-        │
-        ├── plt.plot() per column        →  raw multi-line chart
-        │
-        └── rolling(window=6).mean()     →  smoothed multi-line chart
+pipeline
+    │
+    │  ── [Ingestion] ────────────────────────────────────────────
+    ├── pd.read_csv()            →  QueryResults.csv  →  df
+    │
+    │  ── [Column rename & type conversion] ──────────────────────
+    ├── df.columns = [...]       →  renames m / TagName / count to DATE / TAG / POSTS
+    ├── pd.to_datetime(df.DATE)  →  converts date strings to datetime objects
+    │
+    │  ── [Exploratory aggregation] ──────────────────────────────
+    ├── groupby('TAG')['POSTS'].sum().sort_values()   →  all-time post totals ranked by language
+    ├── groupby('TAG')['DATE'].count().sort_values()  →  months of data per language
+    │
+    │  ── [Reshape to wide format] ───────────────────────────────
+    ├── df.pivot(index='DATE', columns='TAG', values='POSTS')  →  reshaped_df (210 rows × 14 cols)
+    ├── reshaped_df.fillna(0)    →  replaces NaN months with 0 for languages not yet active
+    │
+    │  ── [Visualisation] ─────────────────────────────────────────
+    ├── plt.plot() in for loop   →  raw multi-line chart, one line per language
+    ├── reshaped_df.rolling(window=6).mean()  →  roll_df, 6-month smoothed values
+    └── plt.plot() on roll_df    →  smoothed multi-line chart revealing long-term trends
 ```
 
 ---
