@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Language Market Index</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+           background: #0f1117; color: #e0e0e0; min-height: 100vh; }
+
+    header { background: #1a1d27; border-bottom: 1px solid #2d3148; padding: 20px 40px; }
+    header h1 { font-size: 1.4rem; font-weight: 600; color: #fff; }
+    header p  { font-size: 0.85rem; color: #8b90a8; margin-top: 4px; }
+
+    .layout { display: grid; grid-template-columns: 320px 1fr; height: calc(100vh - 73px); }
+
+    /* ── Sidebar ── */
+    .sidebar { background: #1a1d27; border-right: 1px solid #2d3148;
+               overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 24px; }
+
+    .sidebar h2 { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: #8b90a8; }
+
+    /* Weight sliders */
+    .sliders { display: flex; flex-direction: column; gap: 14px; }
+    .slider-row label { font-size: 0.8rem; color: #c9cce0; display: flex;
+                        justify-content: space-between; margin-bottom: 5px; }
+    .slider-row input[type=range] { width: 100%; accent-color: #5c6cfa; }
+    .weight-total { font-size: 0.75rem; color: #8b90a8; text-align: right; }
+    .weight-total.error { color: #f07070; }
+
+    button#recalc { width: 100%; padding: 9px; background: #5c6cfa; border: none;
+                    border-radius: 6px; color: #fff; font-size: 0.85rem; font-weight: 600;
+                    cursor: pointer; margin-top: 4px; }
+    button#recalc:hover { background: #4a5ae8; }
+
+    /* ── Main ── */
+    .main { overflow-y: auto; padding: 28px 36px; display: flex; flex-direction: column; gap: 20px; }
+
+    .no-data { color: #8b90a8; font-size: 0.95rem; padding: 40px 0; }
+    .no-data code { background: #1a1d27; padding: 2px 6px; border-radius: 4px;
+                    font-size: 0.85rem; color: #5c6cfa; }
+
+    /* Detail cards */
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+    .card { background: #1a1d27; border: 1px solid #2d3148; border-radius: 8px; padding: 14px 16px; }
+    .card .label { font-size: 0.7rem; color: #8b90a8; text-transform: uppercase;
+                   letter-spacing: 0.08em; margin-bottom: 5px; }
+    .card .value { font-size: 1.4rem; font-weight: 700; color: #fff; }
+    .card .sub   { font-size: 0.72rem; color: #8b90a8; margin-top: 3px; }
+
+    /* Breakdown bars */
+    .breakdown { background: #1a1d27; border: 1px solid #2d3148; border-radius: 8px; padding: 18px 20px; }
+    .breakdown h3 { font-size: 0.8rem; color: #8b90a8; margin-bottom: 14px; }
+    .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .bar-row .bar-label { width: 130px; font-size: 0.8rem; color: #c9cce0; flex-shrink: 0; }
+    .bar-row .bar-track { flex: 1; background: #2d3148; border-radius: 4px; height: 8px; }
+    .bar-row .bar-fill  { height: 8px; border-radius: 4px; background: #5c6cfa; }
+    .bar-row .bar-val   { width: 36px; text-align: right; font-size: 0.8rem; color: #8b90a8; }
+
+    /* Ranked table */
+    .table-wrap { background: #1a1d27; border: 1px solid #2d3148; border-radius: 8px; overflow: hidden; }
+    .table-wrap h3 { font-size: 0.8rem; color: #8b90a8; padding: 14px 18px 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th { text-align: left; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+         color: #8b90a8; padding: 7px 14px; border-bottom: 1px solid #2d3148; }
+    td { padding: 8px 14px; font-size: 0.85rem; border-bottom: 1px solid #1e2130;
+         cursor: pointer; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #21253a; }
+    tr.selected td { background: #2b2f4a; }
+
+    .badge { font-size: 0.7rem; padding: 2px 7px; border-radius: 20px; font-weight: 600; }
+    .score-bar { display: inline-block; height: 6px; border-radius: 3px;
+                 background: #5c6cfa; vertical-align: middle; margin-right: 6px; }
+
+    .placeholder { color: #8b90a8; font-size: 0.9rem; padding: 30px 0; text-align: center; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Language Market Index</h1>
+  <p>Composite score: job postings · GitHub activity · developer survey · TIOBE rating</p>
+</header>
+
+<div class="layout">
+  <!-- Sidebar: weight sliders -->
+  <aside class="sidebar">
+    <div>
+      <h2>Weighting Model</h2>
+      <p style="font-size:0.75rem;color:#8b90a8;margin-top:6px">
+        Adjust the weight of each signal. Weights must sum to 100%.
+      </p>
+    </div>
+
+    <div class="sliders" id="sliders">
+      {% for key, w in weights.items() %}
+      <div class="slider-row" data-source="{{ key }}">
+        <label>
+          <span>{{ source_labels[key] }}</span>
+          <span class="w-display">{{ (w * 100)|int }}%</span>
+        </label>
+        <input type="range" min="0" max="100" step="5"
+               value="{{ (w * 100)|int }}"
+               oninput="updateWeight(this)" />
+      </div>
+      {% endfor %}
+      <div class="weight-total" id="weight-total">Total: 100%</div>
+      <button id="recalc" onclick="recalculate()">Recalculate Index</button>
+    </div>
+  </aside>
+
+  <!-- Main panel -->
+  <main class="main" id="main">
+    {% if no_data %}
+    <div class="no-data">
+      <p>No index data found. Run the pipeline first:</p>
+      <br>
+      <code>cd lmi && python run_pipeline.py</code>
+      <br><br>
+      <p>Or run individual sources:</p>
+      <code>python run_pipeline.py --skip-github --skip-so</code>
+    </div>
+    {% else %}
+    <div class="cards" id="detail-cards">
+      <div class="placeholder">Click a language to see its score breakdown.</div>
+    </div>
+    <div class="breakdown" id="breakdown" style="display:none">
+      <h3>Score breakdown by source</h3>
+      <div id="breakdown-bars"></div>
+    </div>
+    <div class="table-wrap">
+      <h3>Ranked Index</h3>
+      <table id="index-table">
+        <thead><tr>
+          <th>#</th><th>Language</th><th>Score</th><th>Lifecycle</th>
+        </tr></thead>
+        <tbody id="table-body">
+          {% for row in table %}
+          <tr onclick="selectLanguage('{{ row.language }}')" data-lang="{{ row.language }}">
+            <td style="color:#8b90a8">{{ row.rank }}</td>
+            <td>{{ row.language }}</td>
+            <td>
+              <span class="score-bar" style="width:{{ row.composite_score * 0.8 }}px"></span>
+              {{ row.composite_score }}
+            </td>
+            <td><span class="badge" style="background:{{ row.color }}22;color:{{ row.color }}">
+              {{ row.lifecycle }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </main>
+</div>
+
+<script>
+  function updateWeight(input) {
+    const row = input.closest('.slider-row');
+    row.querySelector('.w-display').textContent = input.value + '%';
+    const total = [...document.querySelectorAll('.slider-row input')].reduce((s, i) => s + parseInt(i.value), 0);
+    const el = document.getElementById('weight-total');
+    el.textContent = `Total: ${total}%`;
+    el.className = 'weight-total' + (total !== 100 ? ' error' : '');
+  }
+
+  async function recalculate() {
+    const weights = {};
+    document.querySelectorAll('.slider-row').forEach(row => {
+      const source = row.dataset.source;
+      const val    = parseInt(row.querySelector('input').value) / 100;
+      weights[source] = val;
+    });
+
+    const res  = await fetch('/api/recalculate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(weights),
+    });
+    const data = await res.json();
+
+    if (data.error) { alert(data.error); return; }
+    renderTable(data.table);
+  }
+
+  function renderTable(rows) {
+    const tbody = document.getElementById('table-body');
+    tbody.innerHTML = rows.map(row => `
+      <tr onclick="selectLanguage('${row.language}')" data-lang="${row.language}">
+        <td style="color:#8b90a8">${row.rank}</td>
+        <td>${row.language}</td>
+        <td>
+          <span class="score-bar" style="width:${row.composite_score * 0.8}px"></span>
+          ${row.composite_score}
+        </td>
+        <td><span class="badge" style="background:${row.color}22;color:${row.color}">
+          ${row.lifecycle}</span></td>
+      </tr>`).join('');
+  }
+
+  async function selectLanguage(lang) {
+    document.querySelectorAll('tr[data-lang]').forEach(r => r.classList.remove('selected'));
+    document.querySelectorAll(`tr[data-lang="${lang}"]`).forEach(r => r.classList.add('selected'));
+
+    const res  = await fetch(`/api/language/${encodeURIComponent(lang)}`);
+    const data = await res.json();
+    if (data.error) return;
+
+    document.getElementById('detail-cards').innerHTML = `
+      <div class="card">
+        <div class="label">Composite Score</div>
+        <div class="value">${data.composite_score}</div>
+        <div class="sub">out of 100</div>
+      </div>
+      <div class="card">
+        <div class="label">Rank</div>
+        <div class="value">#${data.rank}</div>
+        <div class="sub">of ${document.querySelectorAll('tr[data-lang]').length}</div>
+      </div>
+      <div class="card">
+        <div class="label">Lifecycle</div>
+        <div class="value" style="color:${data.color};font-size:1rem;padding-top:6px">${data.lifecycle}</div>
+      </div>
+    `;
+
+    const breakdownEl = document.getElementById('breakdown');
+    const barsEl      = document.getElementById('breakdown-bars');
+
+    if (Object.keys(data.breakdown).length) {
+      barsEl.innerHTML = Object.entries(data.breakdown).map(([src, d]) => `
+        <div class="bar-row">
+          <span class="bar-label">${d.label}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${d.normalized}%"></div></div>
+          <span class="bar-val">${d.normalized}</span>
+        </div>`).join('');
+      breakdownEl.style.display = 'block';
+    }
+  }
+</script>
+</body>
+</html>
