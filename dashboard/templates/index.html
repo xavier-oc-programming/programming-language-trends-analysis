@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Programming Language Workforce Strategy</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a1d27;
+      border-bottom: 1px solid #2d3148;
+      padding: 20px 40px;
+    }
+    header h1 { font-size: 1.4rem; font-weight: 600; color: #fff; }
+    header p  { font-size: 0.85rem; color: #8b90a8; margin-top: 4px; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 0;
+      height: calc(100vh - 73px);
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      background: #1a1d27;
+      border-right: 1px solid #2d3148;
+      overflow-y: auto;
+      padding: 20px 0;
+    }
+    .sidebar h2 { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em;
+                  color: #8b90a8; padding: 0 20px 10px; }
+
+    .lang-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 10px 20px;
+      background: none;
+      border: none;
+      color: #c9cce0;
+      cursor: pointer;
+      font-size: 0.9rem;
+      text-align: left;
+      transition: background 0.15s;
+    }
+    .lang-btn:hover   { background: #232740; }
+    .lang-btn.active  { background: #2b2f4a; color: #fff; border-left: 3px solid #5c6cfa; }
+
+    .badge {
+      font-size: 0.7rem;
+      padding: 2px 7px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+    .badge-Dominant  { background: #1a3a5c; color: #5bc0f8; }
+    .badge-Rising    { background: #1a3d2a; color: #4ecb71; }
+    .badge-Mature    { background: #3d3010; color: #f0c040; }
+    .badge-Declining { background: #3d1010; color: #f07070; }
+    .badge-Niche     { background: #2a2a2a; color: #aaaaaa; }
+
+    /* ── Main panel ── */
+    .main {
+      overflow-y: auto;
+      padding: 28px 36px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 14px;
+    }
+    .card {
+      background: #1a1d27;
+      border: 1px solid #2d3148;
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .card .label { font-size: 0.72rem; color: #8b90a8; text-transform: uppercase;
+                   letter-spacing: 0.08em; margin-bottom: 6px; }
+    .card .value { font-size: 1.5rem; font-weight: 700; color: #fff; }
+    .card .sub   { font-size: 0.75rem; color: #8b90a8; margin-top: 3px; }
+
+    .momentum-pos { color: #4ecb71; }
+    .momentum-neg { color: #f07070; }
+
+    .chart-wrap {
+      background: #1a1d27;
+      border: 1px solid #2d3148;
+      border-radius: 8px;
+      padding: 20px;
+    }
+    .chart-wrap h3 { font-size: 0.85rem; color: #8b90a8; margin-bottom: 14px; }
+
+    /* ── Strategy table ── */
+    .table-wrap {
+      background: #1a1d27;
+      border: 1px solid #2d3148;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .table-wrap h3 { font-size: 0.85rem; color: #8b90a8; padding: 16px 20px 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th {
+      text-align: left;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #8b90a8;
+      padding: 8px 16px;
+      border-bottom: 1px solid #2d3148;
+    }
+    td { padding: 9px 16px; font-size: 0.85rem; border-bottom: 1px solid #1e2130; }
+    tr:last-child td { border-bottom: none; }
+    tr.active-row td { background: #21253a; }
+
+    .loading { color: #8b90a8; font-size: 0.9rem; padding: 40px 0; text-align: center; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Programming Language Workforce Strategy</h1>
+  <p>Which languages should a technology consultancy be hiring and training for?</p>
+</header>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <h2>Languages</h2>
+    {% for lang in languages %}
+    <button class="lang-btn" data-lang="{{ lang }}" onclick="selectLanguage('{{ lang }}')">
+      {{ lang }}
+      <span id="badge-{{ lang }}" class="badge"></span>
+    </button>
+    {% endfor %}
+  </nav>
+
+  <!-- Main -->
+  <main class="main" id="main">
+    <div class="loading">Select a language to see its analysis.</div>
+  </main>
+</div>
+
+<!-- Strategy table rendered once from server data -->
+<script>
+  const TABLE_DATA = {{ table_data | tojson }};
+
+  // Pre-populate sidebar badges from table data
+  TABLE_DATA.forEach(row => {
+    const badge = document.getElementById(`badge-${row.language}`);
+    if (badge) {
+      badge.textContent = row.lifecycle;
+      badge.className = `badge badge-${row.lifecycle}`;
+    }
+  });
+
+  let activeChart = null;
+
+  function fmt(n) {
+    return n >= 1e6 ? (n / 1e6).toFixed(1) + 'M'
+         : n >= 1e3 ? (n / 1e3).toFixed(0) + 'K'
+         : String(n);
+  }
+
+  function lifecycleColor(lc) {
+    return { Dominant: '#5bc0f8', Rising: '#4ecb71', Mature: '#f0c040',
+             Declining: '#f07070', Niche: '#aaaaaa' }[lc] || '#fff';
+  }
+
+  async function selectLanguage(lang) {
+    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`[data-lang="${lang}"]`).classList.add('active');
+
+    const main = document.getElementById('main');
+    main.innerHTML = '<div class="loading">Loading...</div>';
+
+    const res  = await fetch(`/api/language/${encodeURIComponent(lang)}`);
+    const data = await res.json();
+
+    const momClass = data.momentum >= 0 ? 'momentum-pos' : 'momentum-neg';
+    const momSign  = data.momentum >= 0 ? '+' : '';
+
+    const jobCard = {{ 'true' if adzuna_available else 'false' }} && data.job_count != null
+      ? `<div class="card">
+           <div class="label">Job Postings</div>
+           <div class="value">${fmt(data.job_count)}</div>
+           <div class="sub">Adzuna live count</div>
+         </div>`
+      : '';
+
+    main.innerHTML = `
+      <div class="cards">
+        <div class="card">
+          <div class="label">Momentum Score</div>
+          <div class="value ${momClass}">${momSign}${data.momentum}%</div>
+          <div class="sub">Last 24 months vs prior 24</div>
+        </div>
+        <div class="card">
+          <div class="label">Lifecycle Stage</div>
+          <div class="value" style="color:${lifecycleColor(data.lifecycle)};font-size:1.1rem;padding-top:6px">
+            ${data.lifecycle}
+          </div>
+          <div class="sub">${strategyText(data.lifecycle)}</div>
+        </div>
+        <div class="card">
+          <div class="label">All-time Posts</div>
+          <div class="value">${fmt(data.total_posts)}</div>
+          <div class="sub">Stack Overflow volume</div>
+        </div>
+        ${jobCard}
+      </div>
+
+      <div class="chart-wrap">
+        <h3>Monthly activity (6-month rolling average)</h3>
+        <canvas id="trendChart" height="100"></canvas>
+      </div>
+
+      <div class="table-wrap">
+        <h3>Full Strategy Table</h3>
+        ${buildTable(lang)}
+      </div>
+    `;
+
+    if (activeChart) { activeChart.destroy(); activeChart = null; }
+
+    const ctx = document.getElementById('trendChart').getContext('2d');
+    activeChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.chart.dates,
+        datasets: [{
+          data: data.chart.values,
+          borderColor: lifecycleColor(data.lifecycle),
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: true,
+          backgroundColor: lifecycleColor(data.lifecycle) + '18',
+          tension: 0.3,
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#8b90a8', maxTicksLimit: 10 }, grid: { color: '#1e2130' } },
+          y: { ticks: { color: '#8b90a8', callback: v => fmt(v) }, grid: { color: '#1e2130' } }
+        }
+      }
+    });
+  }
+
+  function strategyText(lc) {
+    return {
+      Dominant:  'Prioritise hiring',
+      Rising:    'Invest early',
+      Mature:    'Maintain — stable',
+      Declining: 'Reduce training investment',
+      Niche:     'Specialist hire only'
+    }[lc] || '';
+  }
+
+  function buildTable(activeLang) {
+    const rows = TABLE_DATA
+      .slice()
+      .sort((a, b) => b.momentum - a.momentum)
+      .map(row => {
+        const active = row.language === activeLang ? 'active-row' : '';
+        const sign   = row.momentum >= 0 ? '+' : '';
+        const cls    = row.momentum >= 0 ? 'momentum-pos' : 'momentum-neg';
+        return `<tr class="${active}">
+          <td>${row.language}</td>
+          <td class="${cls}">${sign}${row.momentum}%</td>
+          <td>${fmt(row.total_posts)}</td>
+          <td><span class="badge badge-${row.lifecycle}">${row.lifecycle}</span></td>
+          <td style="color:#8b90a8;font-size:0.8rem">${strategyText(row.lifecycle)}</td>
+        </tr>`;
+      }).join('');
+
+    return `<table>
+      <thead><tr>
+        <th>Language</th><th>Momentum</th><th>Total Posts</th>
+        <th>Lifecycle</th><th>Recommendation</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+</script>
+</body>
+</html>
