@@ -138,6 +138,8 @@ pipeline/run.py
 │   │   ├── adzuna/                         # Job posting counts from Adzuna API
 │   │   ├── github/                         # GitHub Octoverse repo activity
 │   │   ├── so_survey/                      # Stack Overflow Developer Survey
+│   │   │   ├── so_survey_parsed.csv        # Committed — sufficient to run the index
+│   │   │   └── survey_2025.csv             # NOT committed (134 MB) — download from stackoverflow.co/survey
 │   │   └── tiobe/                          # TIOBE Index ratings
 │   └── processed/
 │       ├── index.csv                       # Final LMI composite scores
@@ -173,6 +175,8 @@ pipeline/run.py
 **Coverage:** 14 programming language tags across 200+ months
 
 ### LMI data sources
+
+> **Note:** `data/raw/so_survey/survey_2025.csv` (134 MB) exceeds GitHub's file size limit and is not committed. Download it from the [Stack Overflow Developer Survey](https://survey.stackoverflow.co/) and place it at that path before running `pipeline/run.py`. The parsed output (`so_survey_parsed.csv`) is committed and sufficient to re-run the index without re-parsing.
 
 | Source | File | What it measures | Weight |
 |--------|------|-----------------|--------|
