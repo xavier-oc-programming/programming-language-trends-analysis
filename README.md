@@ -22,7 +22,8 @@ This project uses Stack Overflow developer activity (2008–present) as a measur
 
 ```
 ├── analysis/
-│   └── language_strategy.ipynb   # Full analysis notebook
+│   ├── language_strategy.ipynb   # Main analysis: workforce strategy
+│   └── so_decline_analysis.ipynb # Extra: is Stack Overflow dying?
 ├── dashboard/
 │   ├── app.py                    # Flask app
 │   ├── data_processor.py         # Shared data logic
