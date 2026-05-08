@@ -7,14 +7,14 @@ import os
 import pandas as pd
 import numpy as np
 
-RAW_DIR   = os.path.join(os.path.dirname(__file__), '..', 'data', 'raw')
-OUT_PATH  = os.path.join(os.path.dirname(__file__), '..', 'data', 'processed', 'normalized.csv')
+RAW_DIR   = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'raw')
+OUT_PATH  = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'processed', 'normalized.csv')
 
 SOURCES = {
-    'github_repos':    os.path.join(RAW_DIR, 'github',   'github_repos.csv'),
-    'adzuna_total':    os.path.join(RAW_DIR, 'adzuna',   'adzuna_jobs.csv'),
-    'so_survey_usage': os.path.join(RAW_DIR, 'so_survey','so_survey_parsed.csv'),
-    'tiobe_rating':    os.path.join(RAW_DIR, 'tiobe',    'tiobe_ratings.csv'),
+    'github_octoverse': os.path.join(RAW_DIR, 'github',   'github_octoverse.csv'),
+    'adzuna_total':     os.path.join(RAW_DIR, 'adzuna',   'adzuna_jobs.csv'),
+    'so_survey_usage':  os.path.join(RAW_DIR, 'so_survey','so_survey_parsed.csv'),
+    'tiobe_rating':     os.path.join(RAW_DIR, 'tiobe',    'tiobe_ratings.csv'),
 }
 
 LANGUAGES = [

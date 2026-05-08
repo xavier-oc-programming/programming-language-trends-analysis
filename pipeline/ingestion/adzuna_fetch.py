@@ -14,7 +14,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
 
 APP_ID  = os.getenv('ADZUNA_APP_ID')
 APP_KEY = os.getenv('ADZUNA_APP_KEY')
-OUTPUT_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'raw', 'adzuna', 'adzuna_jobs.csv')
+OUTPUT_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'raw', 'adzuna', 'adzuna_jobs.csv')
 
 COUNTRIES = ['gb', 'us', 'de', 'fr', 'es']
 
@@ -29,7 +29,7 @@ SEARCH_TERMS = {
     'javascript': 'javascript developer',
     'typescript': 'typescript developer',
     'java':       'java developer',
-    'c#':         'c# dotnet developer',
+    'c#':         'csharp developer',
     'c++':        'c++ developer',
     'go':         'golang developer',
     'rust':       'rust developer',

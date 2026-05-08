@@ -5,298 +5,536 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Programming Language Workforce Strategy</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+           background: #0f1117; color: #e0e0e0; min-height: 100vh; }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0f1117;
-      color: #e0e0e0;
-      min-height: 100vh;
+    /* ── Header & Tabs ── */
+    header { background: #1a1d27; border-bottom: 1px solid #2d3148; padding: 18px 40px 0; }
+    header h1 { font-size: 1.3rem; font-weight: 700; color: #fff; }
+    header p  { font-size: 0.82rem; color: #8b90a8; margin-top: 3px; }
+    .tabs { display: flex; gap: 0; margin-top: 16px; }
+    .tab-btn {
+      padding: 10px 24px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      border: none; background: transparent; color: #8b90a8;
+      border-bottom: 3px solid transparent; transition: all 0.15s;
     }
+    .tab-btn.active { color: #fff; border-bottom-color: #5c6cfa; }
+    .tab-btn:hover:not(.active) { color: #c9cce0; }
 
-    header {
-      background: #1a1d27;
-      border-bottom: 1px solid #2d3148;
-      padding: 20px 40px;
+    /* ── Sections ── */
+    .section { display: none; }
+    .section.active { display: flex; }
+
+    /* ── SO Section ── */
+    #so-section {
+      flex-direction: column; padding: 24px 32px; gap: 18px; overflow-y: auto;
+      height: calc(100vh - 97px);
     }
-    header h1 { font-size: 1.4rem; font-weight: 600; color: #fff; }
-    header p  { font-size: 0.85rem; color: #8b90a8; margin-top: 4px; }
-
-    .layout {
+    .chart-grid {
       display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 220px 340px 260px;
+      gap: 18px;
+    }
+    .chart-full { grid-column: 1 / -1; }
+    .chart-box {
+      background: #1a1d27; border: 1px solid #2d3148; border-radius: 10px;
+      padding: 16px 20px; display: flex; flex-direction: column;
+    }
+    .chart-box h3 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em;
+                    color: #8b90a8; margin-bottom: 12px; flex-shrink: 0; }
+    .chart-box canvas { flex: 1; min-height: 0; width: 100% !important; }
+
+    /* ── LMI Section ── */
+    #lmi-section {
+      height: calc(100vh - 97px);
       grid-template-columns: 300px 1fr;
-      gap: 0;
-      height: calc(100vh - 73px);
+      display: none;
     }
+    #lmi-section.active { display: grid; }
 
-    /* ── Sidebar ── */
-    .sidebar {
-      background: #1a1d27;
-      border-right: 1px solid #2d3148;
-      overflow-y: auto;
-      padding: 20px 0;
-    }
-    .sidebar h2 { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em;
-                  color: #8b90a8; padding: 0 20px 10px; }
+    .sidebar { background: #1a1d27; border-right: 1px solid #2d3148;
+               overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+    .sidebar h2 { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: #8b90a8; }
 
-    .lang-btn {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      width: 100%;
-      padding: 10px 20px;
-      background: none;
-      border: none;
-      color: #c9cce0;
-      cursor: pointer;
-      font-size: 0.9rem;
-      text-align: left;
-      transition: background 0.15s;
-    }
-    .lang-btn:hover   { background: #232740; }
-    .lang-btn.active  { background: #2b2f4a; color: #fff; border-left: 3px solid #5c6cfa; }
+    .sliders { display: flex; flex-direction: column; gap: 12px; }
+    .slider-row label { font-size: 0.78rem; color: #c9cce0; display: flex;
+                        justify-content: space-between; margin-bottom: 4px; }
+    .slider-row input[type=range] { width: 100%; accent-color: #5c6cfa; }
+    .weight-total { font-size: 0.73rem; color: #8b90a8; text-align: right; }
+    .weight-total.error { color: #f07070; }
+    button#recalc { width: 100%; padding: 9px; background: #5c6cfa; border: none;
+                    border-radius: 6px; color: #fff; font-size: 0.84rem; font-weight: 600;
+                    cursor: pointer; }
+    button#recalc:hover { background: #4a5ae8; }
 
-    .badge {
-      font-size: 0.7rem;
-      padding: 2px 7px;
-      border-radius: 20px;
-      font-weight: 600;
-    }
-    .badge-Dominant  { background: #1a3a5c; color: #5bc0f8; }
-    .badge-Rising    { background: #1a3d2a; color: #4ecb71; }
-    .badge-Mature    { background: #3d3010; color: #f0c040; }
-    .badge-Declining { background: #3d1010; color: #f07070; }
-    .badge-Niche     { background: #2a2a2a; color: #aaaaaa; }
+    .main { overflow-y: auto; padding: 24px 28px; display: flex; flex-direction: column; gap: 18px; }
 
-    /* ── Main panel ── */
-    .main {
-      overflow-y: auto;
-      padding: 28px 36px;
-      display: flex;
-      flex-direction: column;
-      gap: 24px;
-    }
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+    .card { background: #1a1d27; border: 1px solid #2d3148; border-radius: 8px; padding: 14px 16px; }
+    .card .label { font-size: 0.68rem; color: #8b90a8; text-transform: uppercase;
+                   letter-spacing: 0.08em; margin-bottom: 4px; }
+    .card .value { font-size: 1.35rem; font-weight: 700; color: #fff; }
+    .card .sub   { font-size: 0.7rem; color: #8b90a8; margin-top: 2px; }
 
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      gap: 14px;
-    }
-    .card {
-      background: #1a1d27;
-      border: 1px solid #2d3148;
-      border-radius: 8px;
-      padding: 16px 18px;
-    }
-    .card .label { font-size: 0.72rem; color: #8b90a8; text-transform: uppercase;
-                   letter-spacing: 0.08em; margin-bottom: 6px; }
-    .card .value { font-size: 1.5rem; font-weight: 700; color: #fff; }
-    .card .sub   { font-size: 0.75rem; color: #8b90a8; margin-top: 3px; }
+    .breakdown { background: #1a1d27; border: 1px solid #2d3148; border-radius: 8px; padding: 16px 18px; }
+    .breakdown h3 { font-size: 0.78rem; color: #8b90a8; margin-bottom: 12px; }
+    .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .bar-row .bar-label { width: 130px; font-size: 0.78rem; color: #c9cce0; flex-shrink: 0; }
+    .bar-row .bar-track { flex: 1; background: #2d3148; border-radius: 4px; height: 7px; }
+    .bar-row .bar-fill  { height: 7px; border-radius: 4px; background: #5c6cfa; }
+    .bar-row .bar-val   { width: 34px; text-align: right; font-size: 0.78rem; color: #8b90a8; }
 
-    .momentum-pos { color: #4ecb71; }
-    .momentum-neg { color: #f07070; }
-
-    .chart-wrap {
-      background: #1a1d27;
-      border: 1px solid #2d3148;
-      border-radius: 8px;
-      padding: 20px;
-    }
-    .chart-wrap h3 { font-size: 0.85rem; color: #8b90a8; margin-bottom: 14px; }
-
-    /* ── Strategy table ── */
-    .table-wrap {
-      background: #1a1d27;
-      border: 1px solid #2d3148;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    .table-wrap h3 { font-size: 0.85rem; color: #8b90a8; padding: 16px 20px 0; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th {
-      text-align: left;
-      font-size: 0.72rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #8b90a8;
-      padding: 8px 16px;
-      border-bottom: 1px solid #2d3148;
-    }
-    td { padding: 9px 16px; font-size: 0.85rem; border-bottom: 1px solid #1e2130; }
+    .table-wrap { background: #1a1d27; border: 1px solid #2d3148; border-radius: 8px; overflow: hidden; }
+    .table-wrap h3 { font-size: 0.78rem; color: #8b90a8; padding: 13px 16px 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th { text-align: left; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em;
+         color: #8b90a8; padding: 6px 14px; border-bottom: 1px solid #2d3148; }
+    td { padding: 8px 14px; font-size: 0.83rem; border-bottom: 1px solid #1e2130; cursor: pointer; }
     tr:last-child td { border-bottom: none; }
-    tr.active-row td { background: #21253a; }
-
-    .loading { color: #8b90a8; font-size: 0.9rem; padding: 40px 0; text-align: center; }
+    tr:hover td { background: #21253a; }
+    tr.selected td { background: #2b2f4a; }
+    .badge { font-size: 0.68rem; padding: 2px 7px; border-radius: 20px; font-weight: 600; }
+    .score-bar { display: inline-block; height: 6px; border-radius: 3px;
+                 background: #5c6cfa; vertical-align: middle; margin-right: 6px; }
+    .placeholder { color: #8b90a8; font-size: 0.88rem; padding: 24px 0; text-align: center; }
+    .no-data { color: #8b90a8; font-size: 0.92rem; padding: 40px 0; }
+    .no-data code { background: #1a1d27; padding: 2px 6px; border-radius: 4px;
+                    font-size: 0.83rem; color: #5c6cfa; }
   </style>
 </head>
 <body>
 
 <header>
   <h1>Programming Language Workforce Strategy</h1>
-  <p>Which languages should a technology consultancy be hiring and training for?</p>
+  <p>Stack Overflow decline analysis · Language Market Index</p>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('so')">Stack Overflow Decline</button>
+    <button class="tab-btn"       onclick="switchTab('lmi')">Language Market Index</button>
+  </div>
 </header>
 
-<div class="layout">
-  <!-- Sidebar -->
-  <nav class="sidebar">
-    <h2>Languages</h2>
-    {% for lang in languages %}
-    <button class="lang-btn" data-lang="{{ lang }}" onclick="selectLanguage('{{ lang }}')">
-      {{ lang }}
-      <span id="badge-{{ lang }}" class="badge"></span>
-    </button>
-    {% endfor %}
-  </nav>
+<!-- ══ Section 1: Stack Overflow Decline ══ -->
+<div id="so-section" class="section active">
+  <div class="chart-grid">
+    <div class="chart-box chart-full">
+      <h3>Total Monthly Posts — Platform Decline</h3>
+      <canvas id="chart-overview"></canvas>
+    </div>
+    <div class="chart-box">
+      <h3>Pre vs Post ChatGPT — Drop per Language</h3>
+      <canvas id="chart-impact"></canvas>
+    </div>
+    <div class="chart-box">
+      <h3>Velocity — Month-over-Month Change</h3>
+      <canvas id="chart-velocity"></canvas>
+    </div>
+    <div class="chart-box chart-full">
+      <h3>Language Share of Monthly Posts Over Time</h3>
+      <canvas id="chart-share"></canvas>
+    </div>
+  </div>
+</div>
 
-  <!-- Main -->
-  <main class="main" id="main">
-    <div class="loading">Select a language to see its analysis.</div>
+<!-- ══ Section 2: Language Market Index ══ -->
+<div id="lmi-section" class="section">
+  <aside class="sidebar">
+    <div>
+      <h2>Weighting Model</h2>
+      <p style="font-size:0.73rem;color:#8b90a8;margin-top:5px">
+        Adjust signal weights. Must sum to 100%.
+      </p>
+    </div>
+    <div class="sliders" id="sliders">
+      {% for key, w in weights.items() %}
+      <div class="slider-row" data-source="{{ key }}">
+        <label>
+          <span>{{ source_labels[key] }}</span>
+          <span class="w-display">{{ (w * 100)|int }}%</span>
+        </label>
+        <input type="range" min="0" max="100" step="5"
+               value="{{ (w * 100)|int }}"
+               oninput="updateWeight(this)" />
+      </div>
+      {% endfor %}
+      <div class="weight-total" id="weight-total">Total: 100%</div>
+      <button id="recalc" onclick="recalculate()">Recalculate Index</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    {% if no_data %}
+    <div class="no-data">
+      <p>No index data found. Run the pipeline first:</p><br>
+      <code>cd lmi && python run_pipeline.py</code>
+    </div>
+    {% else %}
+    <div class="chart-box">
+      <h3>Composite Score by Language</h3>
+      <canvas id="chart-lmi-scores" height="60"></canvas>
+    </div>
+    <div class="chart-box">
+      <h3>Score Breakdown by Source</h3>
+      <canvas id="chart-lmi-breakdown" height="60"></canvas>
+    </div>
+    <div class="cards" id="detail-cards">
+      <div class="placeholder">Click a language in the table to see its breakdown.</div>
+    </div>
+    <div class="breakdown" id="breakdown" style="display:none">
+      <h3>Score breakdown by source</h3>
+      <div id="breakdown-bars"></div>
+    </div>
+    <div class="table-wrap">
+      <h3>Ranked Index</h3>
+      <table id="index-table">
+        <thead><tr>
+          <th>#</th><th>Language</th><th>Score</th><th>Lifecycle</th>
+        </tr></thead>
+        <tbody id="table-body">
+          {% for row in table %}
+          <tr onclick="selectLanguage('{{ row.language }}')" data-lang="{{ row.language }}">
+            <td style="color:#8b90a8">{{ row.rank }}</td>
+            <td>{{ row.language }}</td>
+            <td>
+              <span class="score-bar" style="width:{{ row.composite_score * 0.7 }}px"></span>
+              {{ row.composite_score }}
+            </td>
+            <td><span class="badge" style="background:{{ row.color }}22;color:{{ row.color }}">
+              {{ row.lifecycle }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
   </main>
 </div>
 
-<!-- Strategy table rendered once from server data -->
 <script>
-  const TABLE_DATA = {{ table_data | tojson }};
+const CHART_DEFAULTS = {
+  color: '#c0c0c0',
+  plugins: { legend: { labels: { color: '#c0c0c0', font: { size: 11 } } } },
+};
+Chart.defaults.color = '#c0c0c0';
 
-  // Pre-populate sidebar badges from table data
-  TABLE_DATA.forEach(row => {
-    const badge = document.getElementById(`badge-${row.language}`);
-    if (badge) {
-      badge.textContent = row.lifecycle;
-      badge.className = `badge badge-${row.lifecycle}`;
+const BG   = '#1a1d27';
+const GRID = '#2d3148';
+const AI_DATE = '2022-11-01';
+
+const AI_ANNOTATION = {
+  type: 'line', scaleID: 'x', value: AI_DATE,
+  borderColor: '#e74c3c', borderWidth: 2, borderDash: [5,4],
+  label: { display: true, content: 'ChatGPT Nov 2022', color: '#e74c3c',
+           font: { size: 10 }, position: 'start', yAdjust: 10 }
+};
+
+const LANG_COLORS = {
+  python: '#5c6cfa', javascript: '#f0c040', java: '#f07070',
+  typescript: '#4ecb71', 'c++': '#e67e22', 'c#': '#9b59b6',
+  php: '#3498db', ruby: '#e74c3c', go: '#1abc9c', swift: '#fd7f6f',
+  r: '#27ae60', perl: '#95a5a6', assembly: '#7f8c8d', delphi: '#bdc3c7',
+  c: '#aaaaaa',
+};
+
+function axisDefaults() {
+  return {
+    grid: { color: GRID },
+    ticks: { color: '#c0c0c0', font: { size: 10 } },
+  };
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(tab + '-section').classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ── SO Charts ─────────────────────────────────────────────────────────────────
+async function buildSOCharts() {
+  const [overview, impact, share, velocity] = await Promise.all([
+    fetch('/api/so/overview').then(r => r.json()),
+    fetch('/api/so/impact').then(r => r.json()),
+    fetch('/api/so/share').then(r => r.json()),
+    fetch('/api/so/velocity').then(r => r.json()),
+  ]);
+
+  // 1. Overview — total posts
+  new Chart(document.getElementById('chart-overview'), {
+    type: 'line',
+    data: {
+      labels: overview.dates,
+      datasets: [{
+        label: 'Total monthly posts (6-month avg)',
+        data: overview.values,
+        borderColor: '#5c6cfa', backgroundColor: '#5c6cfa22',
+        borderWidth: 2, fill: true, pointRadius: 0, tension: 0.3,
+      }]
+    },
+    options: {
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        annotation: { annotations: { aiLine: AI_ANNOTATION } }
+      },
+      scales: {
+        x: { ...axisDefaults(), ticks: { color: '#8b90a8', maxTicksLimit: 10, font: { size: 10 } } },
+        y: { ...axisDefaults(), ticks: { color: '#8b90a8', font: { size: 10 },
+             callback: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v } }
+      }
     }
   });
 
-  let activeChart = null;
-
-  function fmt(n) {
-    return n >= 1e6 ? (n / 1e6).toFixed(1) + 'M'
-         : n >= 1e3 ? (n / 1e3).toFixed(0) + 'K'
-         : String(n);
-  }
-
-  function lifecycleColor(lc) {
-    return { Dominant: '#5bc0f8', Rising: '#4ecb71', Mature: '#f0c040',
-             Declining: '#f07070', Niche: '#aaaaaa' }[lc] || '#fff';
-  }
-
-  async function selectLanguage(lang) {
-    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
-    document.querySelector(`[data-lang="${lang}"]`).classList.add('active');
-
-    const main = document.getElementById('main');
-    main.innerHTML = '<div class="loading">Loading...</div>';
-
-    const res  = await fetch(`/api/language/${encodeURIComponent(lang)}`);
-    const data = await res.json();
-
-    const momClass = data.momentum >= 0 ? 'momentum-pos' : 'momentum-neg';
-    const momSign  = data.momentum >= 0 ? '+' : '';
-
-    const jobCard = {{ 'true' if adzuna_available else 'false' }} && data.job_count != null
-      ? `<div class="card">
-           <div class="label">Job Postings</div>
-           <div class="value">${fmt(data.job_count)}</div>
-           <div class="sub">Adzuna live count</div>
-         </div>`
-      : '';
-
-    main.innerHTML = `
-      <div class="cards">
-        <div class="card">
-          <div class="label">Momentum Score</div>
-          <div class="value ${momClass}">${momSign}${data.momentum}%</div>
-          <div class="sub">Last 24 months vs prior 24</div>
-        </div>
-        <div class="card">
-          <div class="label">Lifecycle Stage</div>
-          <div class="value" style="color:${lifecycleColor(data.lifecycle)};font-size:1.1rem;padding-top:6px">
-            ${data.lifecycle}
-          </div>
-          <div class="sub">${strategyText(data.lifecycle)}</div>
-        </div>
-        <div class="card">
-          <div class="label">All-time Posts</div>
-          <div class="value">${fmt(data.total_posts)}</div>
-          <div class="sub">Stack Overflow volume</div>
-        </div>
-        ${jobCard}
-      </div>
-
-      <div class="chart-wrap">
-        <h3>Monthly activity (6-month rolling average)</h3>
-        <canvas id="trendChart" height="100"></canvas>
-      </div>
-
-      <div class="table-wrap">
-        <h3>Full Strategy Table</h3>
-        ${buildTable(lang)}
-      </div>
-    `;
-
-    if (activeChart) { activeChart.destroy(); activeChart = null; }
-
-    const ctx = document.getElementById('trendChart').getContext('2d');
-    activeChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: data.chart.dates,
-        datasets: [{
-          data: data.chart.values,
-          borderColor: lifecycleColor(data.lifecycle),
-          borderWidth: 2,
-          pointRadius: 0,
-          fill: true,
-          backgroundColor: lifecycleColor(data.lifecycle) + '18',
-          tension: 0.3,
-        }]
-      },
-      options: {
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { ticks: { color: '#8b90a8', maxTicksLimit: 10 }, grid: { color: '#1e2130' } },
-          y: { ticks: { color: '#8b90a8', callback: v => fmt(v) }, grid: { color: '#1e2130' } }
+  // 2. Impact — horizontal bar
+  const impactColors = impact.values.map(v =>
+    v < -50 ? '#f07070' : v < -30 ? '#f0c040' : '#4ecb71'
+  );
+  new Chart(document.getElementById('chart-impact'), {
+    type: 'bar',
+    data: {
+      labels: impact.languages,
+      datasets: [{
+        label: 'Drop (%)',
+        data: impact.values,
+        backgroundColor: impactColors,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      maintainAspectRatio: false,
+      indexAxis: 'y',
+      plugins: {
+        legend: { display: false },
+        annotation: {
+          annotations: {
+            avgLine: {
+              type: 'line', scaleID: 'x', value: impact.average,
+              borderColor: '#f0c040', borderWidth: 1.5, borderDash: [4,3],
+              label: { display: true, content: `avg ${impact.average}%`,
+                       color: '#f0c040', font: { size: 10 }, position: 'end' }
+            }
+          }
         }
+      },
+      scales: {
+        x: { ...axisDefaults(), ticks: { callback: v => v + '%' } },
+        y: { ...axisDefaults() }
       }
-    });
-  }
+    }
+  });
 
-  function strategyText(lc) {
-    return {
-      Dominant:  'Prioritise hiring',
-      Rising:    'Invest early',
-      Mature:    'Maintain — stable',
-      Declining: 'Reduce training investment',
-      Niche:     'Specialist hire only'
-    }[lc] || '';
-  }
+  // 3. Velocity
+  const velColors = velocity.values.map(v => v < 0 ? '#f07070' : '#4ecb71');
+  new Chart(document.getElementById('chart-velocity'), {
+    type: 'bar',
+    data: {
+      labels: velocity.dates,
+      datasets: [{
+        label: 'Monthly change (%)',
+        data: velocity.values,
+        backgroundColor: velColors,
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        annotation: {
+          annotations: {
+            zero: { type: 'line', scaleID: 'y', value: 0,
+                    borderColor: '#8b90a8', borderWidth: 1 },
+            aiLine: { ...AI_ANNOTATION, scaleID: 'x' },
+            preAvg: {
+              type: 'line', scaleID: 'y', value: velocity.pre_ai_avg,
+              borderColor: '#4ecb71', borderWidth: 1.5, borderDash: [4,3],
+              label: { display: true, content: `pre-AI avg ${velocity.pre_ai_avg}%/mo`,
+                       color: '#4ecb71', font: { size: 10 }, position: 'start' }
+            },
+            postAvg: {
+              type: 'line', scaleID: 'y', value: velocity.post_ai_avg,
+              borderColor: '#f07070', borderWidth: 1.5, borderDash: [4,3],
+              label: { display: true, content: `post-AI avg ${velocity.post_ai_avg}%/mo`,
+                       color: '#f07070', font: { size: 10 }, position: 'end' }
+            }
+          }
+        }
+      },
+      scales: {
+        x: { ...axisDefaults(), ticks: { color: '#8b90a8', maxTicksLimit: 10, font: { size: 10 } } },
+        y: { ...axisDefaults(), ticks: { callback: v => v + '%' } }
+      }
+    }
+  });
 
-  function buildTable(activeLang) {
-    const rows = TABLE_DATA
-      .slice()
-      .sort((a, b) => b.momentum - a.momentum)
-      .map(row => {
-        const active = row.language === activeLang ? 'active-row' : '';
-        const sign   = row.momentum >= 0 ? '+' : '';
-        const cls    = row.momentum >= 0 ? 'momentum-pos' : 'momentum-neg';
-        return `<tr class="${active}">
-          <td>${row.language}</td>
-          <td class="${cls}">${sign}${row.momentum}%</td>
-          <td>${fmt(row.total_posts)}</td>
-          <td><span class="badge badge-${row.lifecycle}">${row.lifecycle}</span></td>
-          <td style="color:#8b90a8;font-size:0.8rem">${strategyText(row.lifecycle)}</td>
-        </tr>`;
-      }).join('');
+  // 4. Share over time
+  const langs = Object.keys(share.languages);
+  new Chart(document.getElementById('chart-share'), {
+    type: 'line',
+    data: {
+      labels: share.dates,
+      datasets: langs.map(lang => ({
+        label: lang,
+        data: share.languages[lang],
+        borderColor: LANG_COLORS[lang] || '#aaa',
+        backgroundColor: 'transparent',
+        borderWidth: 2, pointRadius: 0, tension: 0.3,
+      }))
+    },
+    options: {
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#c0c0c0', font: { size: 10 }, boxWidth: 12 } },
+        annotation: { annotations: { aiLine: AI_ANNOTATION } }
+      },
+      scales: {
+        x: { ...axisDefaults(), ticks: { color: '#8b90a8', maxTicksLimit: 10, font: { size: 10 } } },
+        y: { ...axisDefaults(), ticks: { callback: v => v.toFixed(1) + '%' } }
+      }
+    }
+  });
+}
 
-    return `<table>
-      <thead><tr>
-        <th>Language</th><th>Momentum</th><th>Total Posts</th>
-        <th>Lifecycle</th><th>Recommendation</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`;
+// ── LMI Charts ────────────────────────────────────────────────────────────────
+async function buildLMICharts() {
+  const data = await fetch('/api/lmi/scores').then(r => r.json());
+  if (!data.length) return;
+
+  const langs     = data.map(d => d.language);
+  const scores    = data.map(d => d.composite_score);
+  const colors    = data.map(d => d.color);
+  const scoreCols = Object.keys(data[0]).filter(k => k.startsWith('score_'));
+
+  const SOURCE_COLORS = ['#5c6cfa', '#4ecb71', '#f0c040', '#f07070'];
+  const SOURCE_NAMES  = {
+    score_adzuna_total:     'Job Postings (35%)',
+    score_github_octoverse: 'GitHub Octoverse (30%)',
+    score_so_survey_usage:  'Developer Survey (25%)',
+    score_tiobe_rating:     'TIOBE Index (10%)',
+  };
+
+  // Composite score bar
+  new Chart(document.getElementById('chart-lmi-scores'), {
+    type: 'bar',
+    data: {
+      labels: langs,
+      datasets: [{
+        label: 'Composite Score',
+        data: scores,
+        backgroundColor: colors.map(c => c + 'cc'),
+        borderColor: colors,
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ...axisDefaults() },
+        y: { ...axisDefaults(), max: 100, ticks: { callback: v => v } }
+      }
+    }
+  });
+
+  // Stacked breakdown
+  new Chart(document.getElementById('chart-lmi-breakdown'), {
+    type: 'bar',
+    data: {
+      labels: langs,
+      datasets: scoreCols.map((col, i) => ({
+        label: SOURCE_NAMES[col] || col,
+        data: data.map(d => d[col]),
+        backgroundColor: SOURCE_COLORS[i],
+        borderWidth: 0,
+      }))
+    },
+    options: {
+      plugins: {
+        legend: { labels: { color: '#c0c0c0', font: { size: 10 }, boxWidth: 12 } }
+      },
+      scales: {
+        x: { ...axisDefaults(), stacked: true },
+        y: { ...axisDefaults(), stacked: true, ticks: { callback: v => v } }
+      }
+    }
+  });
+}
+
+// ── LMI Table interactions ────────────────────────────────────────────────────
+function updateWeight(input) {
+  input.closest('.slider-row').querySelector('.w-display').textContent = input.value + '%';
+  const total = [...document.querySelectorAll('.slider-row input')]
+    .reduce((s, i) => s + parseInt(i.value), 0);
+  const el = document.getElementById('weight-total');
+  el.textContent = `Total: ${total}%`;
+  el.className = 'weight-total' + (total !== 100 ? ' error' : '');
+}
+
+async function recalculate() {
+  const weights = {};
+  document.querySelectorAll('.slider-row').forEach(row => {
+    weights[row.dataset.source] = parseInt(row.querySelector('input').value) / 100;
+  });
+  const res  = await fetch('/api/recalculate', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(weights),
+  });
+  const data = await res.json();
+  if (data.error) { alert(data.error); return; }
+  renderTable(data.table);
+}
+
+function renderTable(rows) {
+  document.getElementById('table-body').innerHTML = rows.map(row => `
+    <tr onclick="selectLanguage('${row.language}')" data-lang="${row.language}">
+      <td style="color:#8b90a8">${row.rank}</td>
+      <td>${row.language}</td>
+      <td><span class="score-bar" style="width:${row.composite_score * 0.7}px"></span>${row.composite_score}</td>
+      <td><span class="badge" style="background:${row.color}22;color:${row.color}">${row.lifecycle}</span></td>
+    </tr>`).join('');
+}
+
+async function selectLanguage(lang) {
+  document.querySelectorAll('tr[data-lang]').forEach(r => r.classList.remove('selected'));
+  document.querySelectorAll(`tr[data-lang="${lang}"]`).forEach(r => r.classList.add('selected'));
+  const data = await fetch(`/api/language/${encodeURIComponent(lang)}`).then(r => r.json());
+  if (data.error) return;
+
+  document.getElementById('detail-cards').innerHTML = `
+    <div class="card">
+      <div class="label">Composite Score</div>
+      <div class="value">${data.composite_score}</div>
+      <div class="sub">out of 100</div>
+    </div>
+    <div class="card">
+      <div class="label">Rank</div>
+      <div class="value">#${data.rank}</div>
+      <div class="sub">of ${document.querySelectorAll('tr[data-lang]').length}</div>
+    </div>
+    <div class="card">
+      <div class="label">Lifecycle</div>
+      <div class="value" style="color:${data.color};font-size:1rem;padding-top:6px">${data.lifecycle}</div>
+    </div>`;
+
+  if (Object.keys(data.breakdown).length) {
+    document.getElementById('breakdown-bars').innerHTML = Object.entries(data.breakdown)
+      .map(([src, d]) => `
+        <div class="bar-row">
+          <span class="bar-label">${d.label}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${d.normalized}%"></div></div>
+          <span class="bar-val">${d.normalized}</span>
+        </div>`).join('');
+    document.getElementById('breakdown').style.display = 'block';
   }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+buildSOCharts();
+{% if not no_data %}buildLMICharts();{% endif %}
 </script>
 </body>
 </html>

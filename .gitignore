@@ -9,3 +9,4 @@
 old_files/
 venv/
 data/seed.*
+data/raw/so_survey/survey_2025.csv

@@ -4,7 +4,7 @@ the composite Language Market Index.
 
 Default weights (must sum to 1.0):
   adzuna_total:    0.35  — what the market is paying for
-  github_repos:    0.30  — what developers are actually building
+  github_octoverse: 0.30  — what developers are actually building
   so_survey_usage: 0.25  — what developers say they use
   tiobe_rating:    0.10  — industry recognition index
 
@@ -16,14 +16,14 @@ import pandas as pd
 import numpy as np
 from datetime import date
 
-NORMALIZED_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'processed', 'normalized.csv')
-OUT_PATH        = os.path.join(os.path.dirname(__file__), '..', 'data', 'processed', 'index.csv')
+NORMALIZED_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'processed', 'normalized.csv')
+OUT_PATH        = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'processed', 'index.csv')
 
 DEFAULT_WEIGHTS = {
-    'adzuna_total':    0.35,
-    'github_repos':    0.30,
-    'so_survey_usage': 0.25,
-    'tiobe_rating':    0.10,
+    'adzuna_total':      0.35,
+    'github_octoverse':  0.30,
+    'so_survey_usage':   0.25,
+    'tiobe_rating':      0.10,
 }
 
 LANGUAGES = [
@@ -33,24 +33,31 @@ LANGUAGES = [
 ]
 
 
-def classify_lifecycle(score: float, trend: float | None = None) -> str:
+def classify_lifecycle_batch(scores: 'pd.Series') -> list[str]:
     """
-    Rising:   composite > 60 and trending up
-    Dominant: composite > 60 and stable
-    Declining: composite trending down > 10% year over year
-    Niche:    composite < 30 regardless of trend
+    Percentile-based classification so labels reflect the actual score distribution
+    rather than fixed absolute thresholds (which produce misleading results when
+    sources are missing or scores are compressed).
+
+    Top 25%    → Dominant
+    25–50%     → Mature
+    50–75%     → Declining
+    Bottom 25% → Niche
     """
-    if score < 30:
+    p75 = float(np.percentile(scores, 75))
+    p50 = float(np.percentile(scores, 50))
+    p25 = float(np.percentile(scores, 25))
+
+    def label(s):
+        if s >= p75:
+            return 'Dominant'
+        if s >= p50:
+            return 'Mature'
+        if s >= p25:
+            return 'Declining'
         return 'Niche'
-    if trend is not None and trend < -10:
-        return 'Declining'
-    if score > 60 and (trend is None or trend >= 0):
-        return 'Dominant'
-    if score > 60 and trend is not None and trend > 0:
-        return 'Rising'
-    if score > 40:
-        return 'Mature'
-    return 'Declining'
+
+    return [label(s) for s in scores]
 
 
 def compute_index(weights: dict = None) -> pd.DataFrame:
@@ -79,10 +86,11 @@ def compute_index(weights: dict = None) -> pd.DataFrame:
         else:
             print(f'  WARNING: source "{source}" not in normalized data — skipping')
 
+    score_series = pd.Series(scores.values, index=LANGUAGES)
     result = pd.DataFrame({
         'language':        LANGUAGES,
-        'composite_score': scores.values.round(2),
-        'lifecycle':       [classify_lifecycle(s) for s in scores.values],
+        'composite_score': score_series.values.round(2),
+        'lifecycle':       classify_lifecycle_batch(score_series),
         'date':            str(date.today()),
     })
 

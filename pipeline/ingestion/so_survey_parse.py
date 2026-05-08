@@ -10,10 +10,11 @@ Column names changed across years — this script handles the differences.
 import os
 import re
 import pandas as pd
+
 from pathlib import Path
 
-SURVEY_DIR  = os.path.join(os.path.dirname(__file__), '..', 'data', 'raw', 'so_survey')
-OUTPUT_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'raw', 'so_survey', 'so_survey_parsed.csv')
+SURVEY_DIR  = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'raw', 'so_survey')
+OUTPUT_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'raw', 'so_survey', 'so_survey_parsed.csv')
 
 LANGUAGES = [
     'python', 'javascript', 'typescript', 'java', 'c#', 'c++',
@@ -40,12 +41,16 @@ def find_col(df: pd.DataFrame, candidates: list[str]) -> str | None:
 
 
 def language_pct(series: pd.Series, language: str) -> float:
-    """% of respondents who listed this language (semicolon-separated values)."""
+    """% of respondents who listed this language (semicolon-separated values).
+    Uses exact token matching to avoid 'r' matching inside 'JavaScript' etc."""
     total = series.dropna().shape[0]
     if total == 0:
         return 0.0
-    pattern = re.compile(re.escape(language), re.IGNORECASE)
-    count = series.dropna().apply(lambda x: bool(pattern.search(str(x)))).sum()
+    lang_lower = language.lower()
+    def row_matches(x):
+        tokens = [t.strip().lower() for t in str(x).split(';')]
+        return lang_lower in tokens
+    count = series.dropna().apply(row_matches).sum()
     return round(count / total * 100, 2)
 
 
