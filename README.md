@@ -256,7 +256,7 @@ Each source is normalised independently to 0–100 via min-max scaling before we
 
 4. **Python users shifted to AI tools fastest** — Python's relative share dropped −4.6% post-ChatGPT, more than the average. Python is the primary language of AI tooling, so Python developers were the earliest heavy adopters of AI-assisted coding. SO's decline is steepest exactly where demand is highest — making raw counts actively misleading.
 
-5. **SO momentum anti-correlates with job demand (r = −0.37)** — languages declining fastest on SO (Python, JavaScript) remain the top hiring targets. This inversion directly motivates the LMI.
+5. **SO momentum anti-correlates with job demand (r = −0.26)** — languages declining fastest on SO (Python, JavaScript) remain the top hiring targets. This inversion directly motivates the LMI.
 
 ### Language Market Index (Project 2)
 
