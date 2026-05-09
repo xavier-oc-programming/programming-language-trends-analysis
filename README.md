@@ -28,8 +28,9 @@ Project 1 investigates Stack Overflow post-volume data to reveal what happened a
 5. [Project 2 — Language Market Index](#5-project-2--language-market-index)
 6. [Key Findings](#6-key-findings)
 7. [Visualisations](#7-visualisations)
-8. [Course Context](#8-course-context)
-9. [Dependencies](#9-dependencies)
+8. [Dashboard Architecture](#8-dashboard-architecture)
+9. [Course Context](#9-course-context)
+10. [Dependencies](#10-dependencies)
 
 ---
 
@@ -306,7 +307,40 @@ All charts are committed to `plots/` and visible without running the code.
 
 ---
 
-## 8. Course Context
+## 8. Dashboard Architecture
+
+The Flask dashboard (`dashboard/app.py`) computes all chart data server-side at page load and injects it into the template as a single JSON object:
+
+```python
+# app.py — compute_chart_data() runs once per page load
+def compute_chart_data():
+    # SO Decline 1: overview, impact, velocity, share
+    # SO Decline 2: per-language (tab20 colors), momentum (RdYlGn gradient),
+    #               lifecycle matrix, SO vs job demand correlation + regression
+    # LMI: composite scores and source breakdowns
+    return { 'so1': so1, 'so2': so2, 'lmi': lmi, 'ai_inflection': AI_INFLECTION }
+
+@app.route('/')
+def index():
+    chart_data = compute_chart_data()
+    return render_template('index.html', chart_data=chart_data, ...)
+```
+
+```javascript
+// index.html — data available immediately, no fetch at page load
+const DATA = {{ chart_data | tojson }};
+buildSOCharts();   // uses DATA.so1.*
+buildLMICharts();  // uses DATA.lmi
+// SO Decline 2 is lazy-loaded on first tab visit using DATA.so2.*
+```
+
+**Why this approach:** eliminates 8 separate GET requests on page load. All expensive pandas/scipy computations (rolling averages, linregress, matplotlib colormaps) happen once in Python at the server, not in JavaScript. The chart colors — matplotlib `tab20` for per-language lines and `RdYlGn` gradient for momentum bars — are computed server-side and passed as hex strings, so the browser charts match the notebook output exactly.
+
+The only remaining fetch calls are interactive: `POST /api/recalculate` (weight sliders) and `GET /api/language/<lang>` (table row clicks).
+
+---
+
+## 9. Course Context
 
 **100 Days of Code: The Complete Python Pro Bootcamp** — Day 73.
 Topics introduced by the course: pandas DataFrames, matplotlib basics, data visualisation.
@@ -315,7 +349,7 @@ The course provided the foundation. This project extends it significantly — ad
 
 ---
 
-## 9. Dependencies
+## 10. Dependencies
 
 | Package | Purpose |
 |---------|---------|

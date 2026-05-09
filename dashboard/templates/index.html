@@ -6,272 +6,672 @@
   <title>Programming Language Workforce Strategy</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-           background: #0f1117; color: #e0e0e0; min-height: 100vh; }
 
-    /* ── Header & Tabs ── */
-    header { background: #1a1d27; border-bottom: 1px solid #2d3148; padding: 18px 40px 0; }
-    header h1 { font-size: 1.3rem; font-weight: 700; color: #fff; }
-    header p  { font-size: 0.82rem; color: #8b90a8; margin-top: 3px; }
-    .tabs { display: flex; gap: 0; margin-top: 16px; }
-    .tab-btn {
-      padding: 10px 24px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
-      border: none; background: transparent; color: #8b90a8;
-      border-bottom: 3px solid transparent; transition: all 0.15s;
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e0e0e0;
+      height: 100vh;
+      overflow: hidden;
     }
-    .tab-btn.active { color: #fff; border-bottom-color: #5c6cfa; }
-    .tab-btn:hover:not(.active) { color: #c9cce0; }
 
-    /* ── Sections ── */
+    .app { display: flex; height: 100vh; overflow: hidden; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 240px;
+      flex-shrink: 0;
+      background: #13151f;
+      border-right: 1px solid #2d3148;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .sidebar-header {
+      padding: 22px 18px 18px;
+      border-bottom: 1px solid #2d3148;
+      flex-shrink: 0;
+    }
+
+    .sidebar-header .title { font-size: 0.9rem; font-weight: 700; color: #fff; line-height: 1.35; }
+    .sidebar-header .subtitle { font-size: 0.7rem; color: #8b90a8; margin-top: 4px; }
+
+    .nav-section { padding: 14px 10px 8px; flex-shrink: 0; }
+
+    .nav-label {
+      font-size: 0.63rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #8b90a8;
+      padding: 0 8px;
+      margin-bottom: 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 9px 10px;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      color: #8b90a8;
+      font-size: 0.84rem;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.15s;
+      margin-bottom: 2px;
+    }
+
+    .nav-item:hover { background: #1e2130; color: #c9cce0; }
+    .nav-item.active { background: #1e2130; color: #fff; }
+    .nav-item.active .nav-dot { background: #5c6cfa; }
+
+    .nav-dot { width: 7px; height: 7px; border-radius: 50%; background: #2d3148; flex-shrink: 0; }
+
+    /* LMI weight controls */
+    .lmi-controls {
+      padding: 14px 12px 20px;
+      border-top: 1px solid #2d3148;
+      display: none;
+      flex-direction: column;
+      gap: 14px;
+      flex-shrink: 0;
+    }
+
+    .lmi-controls.visible { display: flex; }
+
+    .slider-group { display: flex; flex-direction: column; gap: 10px; }
+
+    .slider-row label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.74rem;
+      color: #c9cce0;
+      margin-bottom: 3px;
+    }
+
+    .slider-row label .pct { color: #8b90a8; }
+    .slider-row input[type=range] { width: 100%; accent-color: #5c6cfa; cursor: pointer; }
+
+    .weight-total { font-size: 0.71rem; text-align: right; color: #8b90a8; }
+    .weight-total.error { color: #f07070; }
+
+    .btn-recalc {
+      padding: 9px;
+      background: #5c6cfa;
+      border: none;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 0.83rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-recalc:hover { background: #4a5ae8; }
+
+    /* ── Main ── */
+    .main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+
     .section { display: none; }
-    .section.active { display: flex; }
+    .section.active { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 
-    /* ── SO Section ── */
-    #so-section {
-      flex-direction: column; padding: 24px 32px; gap: 18px; overflow-y: auto;
-      height: calc(100vh - 97px);
+    /* SO: scrollable with vh-sized rows, same as LMI */
+    #so-section { padding: 16px 24px 14px; gap: 12px; overflow-y: auto; }
+
+    /* SO Decline 2: scrollable, same style as SO */
+    #so2-section { padding: 16px 24px 14px; gap: 12px; overflow-y: auto; }
+    #so2-section > .chart-box { flex-shrink: 0; }
+    #so2-section > .chart-box .chart-wrap { flex: none; height: 52vh; }
+
+    /* LMI: scrollable */
+    #lmi-section { padding: 20px 24px 24px; gap: 18px; overflow-y: auto; }
+
+    .section-header { flex-shrink: 0; }
+    .section-header h2 { font-size: 1rem; font-weight: 700; color: #fff; }
+    .section-header p  { font-size: 0.75rem; color: #8b90a8; margin-top: 3px; }
+
+    /* Chart boxes */
+    .chart-box {
+      background: #1a1d27;
+      border: 1px solid #2d3148;
+      border-radius: 10px;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
     }
-    .chart-grid {
+
+    .chart-box h3 {
+      font-size: 0.69rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #8b90a8;
+      margin-bottom: 8px;
+      flex-shrink: 0;
+    }
+
+    .chart-wrap { position: relative; flex: 1; min-height: 0; }
+
+    /* SO rows — vh heights matching LMI style */
+    #so-section > .chart-box { flex-shrink: 0; }
+    #so-section > .chart-box .chart-wrap { flex: none; height: 52vh; }
+
+    .chart-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      grid-template-rows: 220px 340px 260px;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .chart-row .chart-wrap { flex: none; height: 52vh; }
+
+    /* Share row: line chart left (50%) + two pies right (50%) */
+    .share-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .share-row .chart-wrap { flex: none; height: 52vh; }
+
+    .pie-column {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .pie-column .chart-box { min-height: 0; }
+
+    /* Pie placeholder state */
+    .pie-placeholder {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      color: #8b90a8;
+      letter-spacing: 0.04em;
+    }
+
+    /* Click indicator badges on pie titles */
+    .pie-badge {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      font-size: 0.65rem;
+      font-weight: 700;
+      line-height: 16px;
+      text-align: center;
+      margin-right: 6px;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+
+    /* LMI charts: side by side, fixed height */
+    .lmi-chart-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 18px;
+      flex-shrink: 0;
     }
-    .chart-full { grid-column: 1 / -1; }
-    .chart-box {
-      background: #1a1d27; border: 1px solid #2d3148; border-radius: 10px;
-      padding: 16px 20px; display: flex; flex-direction: column;
+
+    .lmi-chart-row .chart-box { min-height: 0; }
+
+    .lmi-chart-row .chart-wrap {
+      flex: none;
+      height: 52vh;
     }
-    .chart-box h3 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em;
-                    color: #8b90a8; margin-bottom: 12px; flex-shrink: 0; }
-    .chart-box canvas { flex: 1; min-height: 0; width: 100% !important; }
 
-    /* ── LMI Section ── */
-    #lmi-section {
-      height: calc(100vh - 97px);
-      grid-template-columns: 300px 1fr;
-      display: none;
+    /* Table */
+    .table-box {
+      background: #1a1d27;
+      border: 1px solid #2d3148;
+      border-radius: 10px;
+      overflow: hidden;
+      flex-shrink: 0;
     }
-    #lmi-section.active { display: grid; }
 
-    .sidebar { background: #1a1d27; border-right: 1px solid #2d3148;
-               overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
-    .sidebar h2 { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: #8b90a8; }
+    .table-box h3 {
+      font-size: 0.69rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #8b90a8;
+      padding: 12px 16px 0;
+    }
 
-    .sliders { display: flex; flex-direction: column; gap: 12px; }
-    .slider-row label { font-size: 0.78rem; color: #c9cce0; display: flex;
-                        justify-content: space-between; margin-bottom: 4px; }
-    .slider-row input[type=range] { width: 100%; accent-color: #5c6cfa; }
-    .weight-total { font-size: 0.73rem; color: #8b90a8; text-align: right; }
-    .weight-total.error { color: #f07070; }
-    button#recalc { width: 100%; padding: 9px; background: #5c6cfa; border: none;
-                    border-radius: 6px; color: #fff; font-size: 0.84rem; font-weight: 600;
-                    cursor: pointer; }
-    button#recalc:hover { background: #4a5ae8; }
-
-    .main { overflow-y: auto; padding: 24px 28px; display: flex; flex-direction: column; gap: 18px; }
-
-    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-    .card { background: #1a1d27; border: 1px solid #2d3148; border-radius: 8px; padding: 14px 16px; }
-    .card .label { font-size: 0.68rem; color: #8b90a8; text-transform: uppercase;
-                   letter-spacing: 0.08em; margin-bottom: 4px; }
-    .card .value { font-size: 1.35rem; font-weight: 700; color: #fff; }
-    .card .sub   { font-size: 0.7rem; color: #8b90a8; margin-top: 2px; }
-
-    .breakdown { background: #1a1d27; border: 1px solid #2d3148; border-radius: 8px; padding: 16px 18px; }
-    .breakdown h3 { font-size: 0.78rem; color: #8b90a8; margin-bottom: 12px; }
-    .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-    .bar-row .bar-label { width: 130px; font-size: 0.78rem; color: #c9cce0; flex-shrink: 0; }
-    .bar-row .bar-track { flex: 1; background: #2d3148; border-radius: 4px; height: 7px; }
-    .bar-row .bar-fill  { height: 7px; border-radius: 4px; background: #5c6cfa; }
-    .bar-row .bar-val   { width: 34px; text-align: right; font-size: 0.78rem; color: #8b90a8; }
-
-    .table-wrap { background: #1a1d27; border: 1px solid #2d3148; border-radius: 8px; overflow: hidden; }
-    .table-wrap h3 { font-size: 0.78rem; color: #8b90a8; padding: 13px 16px 0; }
     table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-    th { text-align: left; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em;
-         color: #8b90a8; padding: 6px 14px; border-bottom: 1px solid #2d3148; }
-    td { padding: 8px 14px; font-size: 0.83rem; border-bottom: 1px solid #1e2130; cursor: pointer; }
+
+    th {
+      text-align: left;
+      font-size: 0.63rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #8b90a8;
+      padding: 5px 14px;
+      border-bottom: 1px solid #2d3148;
+    }
+
+    td { padding: 8px 14px; font-size: 0.82rem; border-bottom: 1px solid #1e2130; cursor: pointer; }
     tr:last-child td { border-bottom: none; }
     tr:hover td { background: #21253a; }
-    tr.selected td { background: #2b2f4a; }
-    .badge { font-size: 0.68rem; padding: 2px 7px; border-radius: 20px; font-weight: 600; }
-    .score-bar { display: inline-block; height: 6px; border-radius: 3px;
-                 background: #5c6cfa; vertical-align: middle; margin-right: 6px; }
-    .placeholder { color: #8b90a8; font-size: 0.88rem; padding: 24px 0; text-align: center; }
-    .no-data { color: #8b90a8; font-size: 0.92rem; padding: 40px 0; }
-    .no-data code { background: #1a1d27; padding: 2px 6px; border-radius: 4px;
-                    font-size: 0.83rem; color: #5c6cfa; }
+    tr.selected td { background: #252942; }
+
+    .badge { font-size: 0.66rem; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+
+    /* Language detail panel */
+    .detail-panel { background: #1a1d27; border: 1px solid #2d3148; border-radius: 10px; padding: 14px 16px; display: none; flex-shrink: 0; }
+    .detail-panel.visible { display: block; }
+    .detail-panel h3 { font-size: 0.69rem; text-transform: uppercase; letter-spacing: 0.08em; color: #8b90a8; margin-bottom: 10px; }
+
+    .stat-row { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+
+    .stat-card { background: #13151f; border: 1px solid #2d3148; border-radius: 8px; padding: 10px 14px; min-width: 100px; }
+    .stat-card .label { font-size: 0.63rem; color: #8b90a8; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 4px; }
+    .stat-card .value { font-size: 1.2rem; font-weight: 700; color: #fff; }
+
+    .bar-breakdown { display: flex; flex-direction: column; gap: 7px; }
+    .bar-row { display: flex; align-items: center; gap: 10px; }
+    .bar-row .bar-label { width: 145px; font-size: 0.74rem; color: #c9cce0; flex-shrink: 0; }
+    .bar-row .bar-track { flex: 1; background: #2d3148; border-radius: 3px; height: 6px; }
+    .bar-row .bar-fill  { height: 6px; border-radius: 3px; background: #5c6cfa; }
+    .bar-row .bar-val   { width: 36px; text-align: right; font-size: 0.74rem; color: #8b90a8; }
+
+    .no-data-msg { color: #8b90a8; font-size: 0.88rem; text-align: center; padding: 48px 0; }
+    .no-data-msg code { background: #13151f; padding: 2px 7px; border-radius: 4px; color: #5c6cfa; }
   </style>
 </head>
 <body>
 
-<header>
-  <h1>Programming Language Workforce Strategy</h1>
-  <p>Stack Overflow decline analysis · Language Market Index</p>
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('so')">Stack Overflow Decline</button>
-    <button class="tab-btn"       onclick="switchTab('lmi')">Language Market Index</button>
-  </div>
-</header>
+<div class="app">
 
-<!-- ══ Section 1: Stack Overflow Decline ══ -->
-<div id="so-section" class="section active">
-  <div class="chart-grid">
-    <div class="chart-box chart-full">
-      <h3>Total Monthly Posts — Platform Decline</h3>
-      <canvas id="chart-overview"></canvas>
-    </div>
-    <div class="chart-box">
-      <h3>Pre vs Post ChatGPT — Drop per Language</h3>
-      <canvas id="chart-impact"></canvas>
-    </div>
-    <div class="chart-box">
-      <h3>Velocity — Month-over-Month Change</h3>
-      <canvas id="chart-velocity"></canvas>
-    </div>
-    <div class="chart-box chart-full">
-      <h3>Language Share of Monthly Posts Over Time</h3>
-      <canvas id="chart-share"></canvas>
-    </div>
-  </div>
-</div>
-
-<!-- ══ Section 2: Language Market Index ══ -->
-<div id="lmi-section" class="section">
+  <!-- ══ Sidebar ══ -->
   <aside class="sidebar">
-    <div>
-      <h2>Weighting Model</h2>
-      <p style="font-size:0.73rem;color:#8b90a8;margin-top:5px">
-        Adjust signal weights. Must sum to 100%.
-      </p>
+    <div class="sidebar-header">
+      <div class="title">Programming Language<br>Workforce Strategy</div>
+      <div class="subtitle">Stack Overflow · LMI · 2025</div>
     </div>
-    <div class="sliders" id="sliders">
-      {% for key, w in weights.items() %}
-      <div class="slider-row" data-source="{{ key }}">
-        <label>
-          <span>{{ source_labels[key] }}</span>
-          <span class="w-display">{{ (w * 100)|int }}%</span>
-        </label>
-        <input type="range" min="0" max="100" step="5"
-               value="{{ (w * 100)|int }}"
-               oninput="updateWeight(this)" />
+
+    <div class="nav-section">
+      <div class="nav-label">Analysis</div>
+      <button class="nav-item active" onclick="navigate('so', this)">
+        <span class="nav-dot"></span>SO Decline
+      </button>
+      <button class="nav-item" onclick="navigate('so2', this)">
+        <span class="nav-dot"></span>SO Decline 2
+      </button>
+      <button class="nav-item" onclick="navigate('lmi', this)">
+        <span class="nav-dot"></span>Language Market Index
+      </button>
+    </div>
+
+    <div class="lmi-controls" id="lmi-controls">
+      <div class="nav-label" style="padding:0">Weighting Model</div>
+      <div class="slider-group">
+        {% for key, w in weights.items() %}
+        <div class="slider-row" data-source="{{ key }}">
+          <label>
+            <span>{{ source_labels[key] }}</span>
+            <span class="pct w-display">{{ (w * 100)|int }}%</span>
+          </label>
+          <input type="range" min="0" max="100" step="5"
+                 value="{{ (w * 100)|int }}"
+                 oninput="updateWeight(this)" />
+        </div>
+        {% endfor %}
       </div>
-      {% endfor %}
       <div class="weight-total" id="weight-total">Total: 100%</div>
-      <button id="recalc" onclick="recalculate()">Recalculate Index</button>
+      <button class="btn-recalc" onclick="recalculate()">Recalculate Index</button>
+      <button class="btn-recalc" style="background:#1e2130;color:#8b90a8;margin-top:-6px"
+              onclick="resetWeights()">Reset to Defaults</button>
     </div>
   </aside>
 
+  <!-- ══ Main ══ -->
   <main class="main">
-    {% if no_data %}
-    <div class="no-data">
-      <p>No index data found. Run the pipeline first:</p><br>
-      <code>cd lmi && python run_pipeline.py</code>
+
+    <!-- Stack Overflow Decline -->
+    <div id="so-section" class="section active">
+      <div class="section-header">
+        <h2>Stack Overflow Decline</h2>
+        <p>Monthly post volume 2008–present · ChatGPT launched November 2022</p>
+      </div>
+
+      <div class="chart-box">
+        <h3>Total Monthly Posts — Platform Decline</h3>
+        <div class="chart-wrap"><canvas id="chart-overview"></canvas></div>
+      </div>
+
+      <div class="chart-row">
+        <div class="chart-box">
+          <h3>Pre vs Post ChatGPT — Drop per Language</h3>
+          <div class="chart-wrap"><canvas id="chart-impact"></canvas></div>
+        </div>
+        <div class="chart-box">
+          <h3>Velocity — Month-over-Month Change</h3>
+          <div class="chart-wrap"><canvas id="chart-velocity"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Share row: line left, two pies right -->
+      <div class="share-row">
+        <!-- Line chart -->
+        <div class="chart-box">
+          <h3 id="share-label">Language Share Over Time — click to compare two points</h3>
+          <div class="chart-wrap"><canvas id="chart-share"></canvas></div>
+        </div>
+
+        <!-- Two pie charts stacked -->
+        <div class="pie-column">
+          <div class="chart-box">
+            <h3>
+              <span class="pie-badge" id="badge-a"
+                    style="background:#5c6cfa22;color:#5c6cfa">A</span>
+              <span id="pie-a-label">Click a point on the line chart</span>
+            </h3>
+            <div class="chart-wrap">
+              <div class="pie-placeholder" id="pie-a-placeholder">← select a time</div>
+              <canvas id="chart-pie-a" style="display:none"></canvas>
+            </div>
+          </div>
+          <div class="chart-box">
+            <h3>
+              <span class="pie-badge" id="badge-b"
+                    style="background:#f0c04022;color:#f0c040">B</span>
+              <span id="pie-b-label">Click a second point to compare</span>
+            </h3>
+            <div class="chart-wrap">
+              <div class="pie-placeholder" id="pie-b-placeholder">← select a time</div>
+              <canvas id="chart-pie-b" style="display:none"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    {% else %}
-    <div class="chart-box">
-      <h3>Composite Score by Language</h3>
-      <canvas id="chart-lmi-scores" height="60"></canvas>
+
+    <!-- SO Decline 2 -->
+    <div id="so2-section" class="section">
+      <div class="section-header">
+        <h2>Stack Overflow Decline — Deep Dive</h2>
+        <p>Monthly posts per language · Momentum scores · Lifecycle matrix · SO vs job demand</p>
+      </div>
+
+      <div class="chart-box">
+        <h3>Monthly Posts per Language</h3>
+        <div class="chart-wrap"><canvas id="chart-per-lang"></canvas></div>
+      </div>
+
+      <div class="chart-row">
+        <div class="chart-box">
+          <h3>Language Momentum Score (recent 24m vs prior 24m)</h3>
+          <div class="chart-wrap"><canvas id="chart-momentum"></canvas></div>
+        </div>
+        <div class="chart-box">
+          <h3>SO Momentum vs Job Market Demand</h3>
+          <div class="chart-wrap"><canvas id="chart-correlation"></canvas></div>
+        </div>
+      </div>
+
+      <div class="chart-box">
+        <h3>Lifecycle Matrix — Volume vs Momentum</h3>
+        <div class="chart-wrap"><canvas id="chart-lifecycle"></canvas></div>
+      </div>
     </div>
-    <div class="chart-box">
-      <h3>Score Breakdown by Source</h3>
-      <canvas id="chart-lmi-breakdown" height="60"></canvas>
+
+    <!-- Language Market Index -->
+    <div id="lmi-section" class="section">
+      <div class="section-header">
+        <h2>Language Market Index</h2>
+        <p>Composite scoring across four independent data sources · Adjust weights in the sidebar and recalculate</p>
+      </div>
+
+      {% if no_data %}
+      <div class="no-data-msg">No index data. Run <code>pipeline/run.py</code> first.</div>
+      {% else %}
+
+      <div class="lmi-chart-row">
+        <div class="chart-box">
+          <h3>Composite Score by Language</h3>
+          <div class="chart-wrap"><canvas id="chart-lmi-scores"></canvas></div>
+        </div>
+
+        <div class="chart-box">
+          <h3>Score Breakdown by Source</h3>
+          <div class="chart-wrap"><canvas id="chart-lmi-breakdown"></canvas></div>
+        </div>
+      </div>
+
+      <div class="detail-panel" id="detail-panel">
+        <h3 id="detail-title">Language Detail</h3>
+        <div class="stat-row" id="detail-stats"></div>
+        <div class="bar-breakdown" id="detail-bars"></div>
+      </div>
+
+      <div class="table-box">
+        <h3>Ranked Index</h3>
+        <table>
+          <thead>
+            <tr><th>#</th><th>Language</th><th>Score</th><th>Lifecycle</th></tr>
+          </thead>
+          <tbody id="table-body">
+            {% for row in table %}
+            <tr onclick="selectLanguage('{{ row.language }}')" data-lang="{{ row.language }}">
+              <td style="color:#8b90a8">{{ row.rank }}</td>
+              <td>{{ row.language }}</td>
+              <td>
+                <span style="display:inline-block;width:{{ [row.composite_score * 0.5, 60]|min }}px;
+                             height:5px;background:#5c6cfa;border-radius:3px;
+                             vertical-align:middle;margin-right:7px"></span>
+                {{ "%.1f"|format(row.composite_score) }}
+              </td>
+              <td>
+                <span class="badge" style="background:{{ row.color }}22;color:{{ row.color }}">
+                  {{ row.lifecycle }}
+                </span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% endif %}
     </div>
-    <div class="cards" id="detail-cards">
-      <div class="placeholder">Click a language in the table to see its breakdown.</div>
-    </div>
-    <div class="breakdown" id="breakdown" style="display:none">
-      <h3>Score breakdown by source</h3>
-      <div id="breakdown-bars"></div>
-    </div>
-    <div class="table-wrap">
-      <h3>Ranked Index</h3>
-      <table id="index-table">
-        <thead><tr>
-          <th>#</th><th>Language</th><th>Score</th><th>Lifecycle</th>
-        </tr></thead>
-        <tbody id="table-body">
-          {% for row in table %}
-          <tr onclick="selectLanguage('{{ row.language }}')" data-lang="{{ row.language }}">
-            <td style="color:#8b90a8">{{ row.rank }}</td>
-            <td>{{ row.language }}</td>
-            <td>
-              <span class="score-bar" style="width:{{ row.composite_score * 0.7 }}px"></span>
-              {{ row.composite_score }}
-            </td>
-            <td><span class="badge" style="background:{{ row.color }}22;color:{{ row.color }}">
-              {{ row.lifecycle }}</span></td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% endif %}
+
   </main>
 </div>
 
 <script>
-const CHART_DEFAULTS = {
-  color: '#c0c0c0',
-  plugins: { legend: { labels: { color: '#c0c0c0', font: { size: 11 } } } },
-};
 Chart.defaults.color = '#c0c0c0';
 
-const BG   = '#1a1d27';
-const GRID = '#2d3148';
-const AI_DATE = '2022-11-01';
+const DATA    = {{ chart_data | tojson }};
+const GRID    = '#2d3148';
+const AI_DATE = DATA.ai_inflection;
 
 const AI_ANNOTATION = {
   type: 'line', scaleID: 'x', value: AI_DATE,
-  borderColor: '#e74c3c', borderWidth: 2, borderDash: [5,4],
-  label: { display: true, content: 'ChatGPT Nov 2022', color: '#e74c3c',
-           font: { size: 10 }, position: 'start', yAdjust: 10 }
+  borderColor: '#e74c3c', borderWidth: 1.5, borderDash: [5, 4],
+  label: {
+    display: true, content: 'ChatGPT Nov 2022',
+    color: '#e74c3c', font: { size: 10 }, position: 'start', yAdjust: 12,
+  }
 };
 
 const LANG_COLORS = {
   python: '#5c6cfa', javascript: '#f0c040', java: '#f07070',
   typescript: '#4ecb71', 'c++': '#e67e22', 'c#': '#9b59b6',
   php: '#3498db', ruby: '#e74c3c', go: '#1abc9c', swift: '#fd7f6f',
-  r: '#27ae60', perl: '#95a5a6', assembly: '#7f8c8d', delphi: '#bdc3c7',
-  c: '#aaaaaa',
+  r: '#27ae60', perl: '#95a5a6', assembly: '#7f8c8d', delphi: '#bdc3c7', c: '#aaaaaa',
 };
 
-function axisDefaults() {
-  return {
-    grid: { color: GRID },
-    ticks: { color: '#c0c0c0', font: { size: 10 } },
-  };
+const LIFECYCLE_COLORS = {
+  Dominant:  '#5bc0f8', Rising: '#4ecb71', Mature: '#f0c040',
+  Declining: '#f07070', Niche: '#aaaaaa',
+};
+
+const PIE_A_COLOR = '#5c6cfa';
+const PIE_B_COLOR = '#f0c040';
+
+function xAxis(cfg = {}) {
+  return { grid: { color: GRID }, ticks: { color: '#8b90a8', font: { size: 10 }, ...cfg } };
 }
 
-// ── Tab switching ─────────────────────────────────────────────────────────────
-function switchTab(tab) {
+function yAxis(cfg = {}) {
+  return { grid: { color: GRID }, ticks: { color: '#8b90a8', font: { size: 10 } }, ...cfg };
+}
+
+// ── Navigation ─────────────────────────────────────────────────────────────────
+let so2Built = false;
+function navigate(section, btn) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById(tab + '-section').classList.add('active');
-  event.target.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById(section + '-section').classList.add('active');
+  btn.classList.add('active');
+  document.getElementById('lmi-controls').classList.toggle('visible', section === 'lmi');
+  if (section === 'so2' && !so2Built) { so2Built = true; buildSO2Charts(); }
 }
 
-// ── SO Charts ─────────────────────────────────────────────────────────────────
-async function buildSOCharts() {
-  const [overview, impact, share, velocity] = await Promise.all([
-    fetch('/api/so/overview').then(r => r.json()),
-    fetch('/api/so/impact').then(r => r.json()),
-    fetch('/api/so/share').then(r => r.json()),
-    fetch('/api/so/velocity').then(r => r.json()),
-  ]);
+// ── Hover line plugin ──────────────────────────────────────────────────────────
+const hoverLinePlugin = {
+  id: 'hoverLine',
+  afterDraw(chart) {
+    const active = chart.tooltip?._active;
+    if (!active?.length) return;
+    const x = active[0].element.x;
+    const { top, bottom } = chart.chartArea;
+    const ctx = chart.ctx;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x, top);
+    ctx.lineTo(x, bottom);
+    ctx.strokeStyle = '#4ecb71';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 5]);
+    ctx.stroke();
+    ctx.restore();
+  }
+};
 
-  // 1. Overview — total posts
+// ── Share chart pie comparison ─────────────────────────────────────────────────
+let shareInstance  = null;
+let shareData_     = null;
+let nextSlot       = 'A';
+let pieAChart      = null;
+let pieBChart      = null;
+
+function quarterLabel(dateStr) {
+  const d = new Date(dateStr);
+  return `Q${Math.ceil((d.getMonth() + 1) / 3)} ${d.getFullYear()}`;
+}
+
+function renderPie(canvasId, placeholderId, index) {
+  const langs  = Object.keys(shareData_.languages);
+  const values = langs.map(l => shareData_.languages[l][index]);
+  const colors = langs.map(l => LANG_COLORS[l] || '#aaa');
+
+  document.getElementById(placeholderId).style.display = 'none';
+  const canvas = document.getElementById(canvasId);
+  canvas.style.display = 'block';
+
+  const existing = canvasId === 'chart-pie-a' ? pieAChart : pieBChart;
+  if (existing) existing.destroy();
+
+  const chart = new Chart(canvas, {
+    type: 'pie',
+    plugins: [ChartDataLabels],
+    data: {
+      labels: langs,
+      datasets: [{
+        data: values,
+        backgroundColor: colors.map(c => c + 'cc'),
+        borderColor: '#0f1117',
+        borderWidth: 1,
+      }]
+    },
+    options: {
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { color: '#c0c0c0', font: { size: 12 }, boxWidth: 10, padding: 8 }
+        },
+        tooltip: {
+          callbacks: { label: ctx => `${ctx.label}: ${ctx.parsed.toFixed(1)}%` }
+        },
+        datalabels: {
+          color: '#fff',
+          font: { size: 10, weight: '600' },
+          formatter(value, ctx) {
+            const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+            const pct = (value / total * 100);
+            return pct >= 4 ? pct.toFixed(1) + '%' : '';
+          }
+        }
+      }
+    }
+  });
+
+  if (canvasId === 'chart-pie-a') pieAChart = chart;
+  else pieBChart = chart;
+}
+
+function setShareAnnotation(id, index, color, label) {
+  if (!shareInstance) return;
+  shareInstance.options.plugins.annotation.annotations[id] = {
+    type: 'line',
+    scaleID: 'x',
+    value: shareData_.dates[index],
+    borderColor: color,
+    borderWidth: 2,
+    borderDash: [],
+    label: {
+      display: true,
+      content: label,
+      color: color,
+      font: { size: 10, weight: '700' },
+      position: 'end',
+      yAdjust: -8,
+    }
+  };
+  shareInstance.update();
+}
+
+function onShareClick(index) {
+  const ql = quarterLabel(shareData_.dates[index]);
+
+  if (nextSlot === 'A') {
+    document.getElementById('pie-a-label').textContent = ql;
+    renderPie('chart-pie-a', 'pie-a-placeholder', index);
+    setShareAnnotation('markerA', index, PIE_A_COLOR, 'A');
+    nextSlot = 'B';
+  } else {
+    document.getElementById('pie-b-label').textContent = ql;
+    renderPie('chart-pie-b', 'pie-b-placeholder', index);
+    setShareAnnotation('markerB', index, PIE_B_COLOR, 'B');
+    nextSlot = 'A';
+  }
+}
+
+// ── SO Charts ──────────────────────────────────────────────────────────────────
+function buildSOCharts() {
+  const { overview, impact, velocity, share } = DATA.so1;
+  shareData_ = share;
+
+  // 1. Total posts
   new Chart(document.getElementById('chart-overview'), {
     type: 'line',
     data: {
       labels: overview.dates,
       datasets: [{
-        label: 'Total monthly posts (6-month avg)',
         data: overview.values,
-        borderColor: '#5c6cfa', backgroundColor: '#5c6cfa22',
+        borderColor: '#5c6cfa', backgroundColor: '#5c6cfa18',
         borderWidth: 2, fill: true, pointRadius: 0, tension: 0.3,
       }]
     },
@@ -279,30 +679,22 @@ async function buildSOCharts() {
       maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        annotation: { annotations: { aiLine: AI_ANNOTATION } }
+        annotation: { annotations: { ai: AI_ANNOTATION } }
       },
       scales: {
-        x: { ...axisDefaults(), ticks: { color: '#8b90a8', maxTicksLimit: 10, font: { size: 10 } } },
-        y: { ...axisDefaults(), ticks: { color: '#8b90a8', font: { size: 10 },
-             callback: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v } }
+        x: xAxis({ maxTicksLimit: 10 }),
+        y: yAxis({ callback: v => v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v }),
       }
     }
   });
 
-  // 2. Impact — horizontal bar
-  const impactColors = impact.values.map(v =>
-    v < -50 ? '#f07070' : v < -30 ? '#f0c040' : '#4ecb71'
-  );
+  // 2. Pre/post drop
+  const impactColors = impact.values.map(v => v < -50 ? '#f07070' : v < -30 ? '#f0c040' : '#4ecb71');
   new Chart(document.getElementById('chart-impact'), {
     type: 'bar',
     data: {
       labels: impact.languages,
-      datasets: [{
-        label: 'Drop (%)',
-        data: impact.values,
-        backgroundColor: impactColors,
-        borderRadius: 4,
-      }]
+      datasets: [{ data: impact.values, backgroundColor: impactColors, borderRadius: 3 }]
     },
     options: {
       maintainAspectRatio: false,
@@ -311,18 +703,18 @@ async function buildSOCharts() {
         legend: { display: false },
         annotation: {
           annotations: {
-            avgLine: {
+            avg: {
               type: 'line', scaleID: 'x', value: impact.average,
-              borderColor: '#f0c040', borderWidth: 1.5, borderDash: [4,3],
+              borderColor: '#f0c040', borderWidth: 1.5, borderDash: [4, 3],
               label: { display: true, content: `avg ${impact.average}%`,
-                       color: '#f0c040', font: { size: 10 }, position: 'end' }
+                       color: '#f0c040', font: { size: 9 }, position: 'end' }
             }
           }
         }
       },
       scales: {
-        x: { ...axisDefaults(), ticks: { callback: v => v + '%' } },
-        y: { ...axisDefaults() }
+        x: yAxis({ callback: v => v + '%' }),
+        y: xAxis({ autoSkip: false }),
       }
     }
   });
@@ -333,12 +725,7 @@ async function buildSOCharts() {
     type: 'bar',
     data: {
       labels: velocity.dates,
-      datasets: [{
-        label: 'Monthly change (%)',
-        data: velocity.values,
-        backgroundColor: velColors,
-        borderWidth: 0,
-      }]
+      datasets: [{ data: velocity.values, backgroundColor: velColors, borderWidth: 0 }]
     },
     options: {
       maintainAspectRatio: false,
@@ -346,38 +733,40 @@ async function buildSOCharts() {
         legend: { display: false },
         annotation: {
           annotations: {
-            zero: { type: 'line', scaleID: 'y', value: 0,
-                    borderColor: '#8b90a8', borderWidth: 1 },
-            aiLine: { ...AI_ANNOTATION, scaleID: 'x' },
-            preAvg: {
+            ai:      { ...AI_ANNOTATION },
+            zero:    { type: 'line', scaleID: 'y', value: 0, borderColor: '#8b90a8', borderWidth: 1 },
+            preAvg:  {
               type: 'line', scaleID: 'y', value: velocity.pre_ai_avg,
-              borderColor: '#4ecb71', borderWidth: 1.5, borderDash: [4,3],
-              label: { display: true, content: `pre-AI avg ${velocity.pre_ai_avg}%/mo`,
-                       color: '#4ecb71', font: { size: 10 }, position: 'start' }
+              borderColor: '#4ecb71', borderWidth: 1.2, borderDash: [4, 3],
+              label: { display: true, content: `pre-AI ${velocity.pre_ai_avg}%/mo`,
+                       color: '#4ecb71', font: { size: 9 }, position: 'start' }
             },
             postAvg: {
               type: 'line', scaleID: 'y', value: velocity.post_ai_avg,
-              borderColor: '#f07070', borderWidth: 1.5, borderDash: [4,3],
-              label: { display: true, content: `post-AI avg ${velocity.post_ai_avg}%/mo`,
-                       color: '#f07070', font: { size: 10 }, position: 'end' }
+              borderColor: '#f07070', borderWidth: 1.2, borderDash: [4, 3],
+              label: { display: true, content: `post-AI ${velocity.post_ai_avg}%/mo`,
+                       color: '#f07070', font: { size: 9 }, position: 'end' }
             }
           }
         }
       },
       scales: {
-        x: { ...axisDefaults(), ticks: { color: '#8b90a8', maxTicksLimit: 10, font: { size: 10 } } },
-        y: { ...axisDefaults(), ticks: { callback: v => v + '%' } }
+        x: xAxis({ maxTicksLimit: 10 }),
+        y: yAxis({ callback: v => v + '%' }),
       }
     }
   });
 
   // 4. Share over time
-  const langs = Object.keys(share.languages);
-  new Chart(document.getElementById('chart-share'), {
+  const shareLangs = Object.keys(share.languages);
+  const shareLabel = document.getElementById('share-label');
+
+  shareInstance = new Chart(document.getElementById('chart-share'), {
     type: 'line',
+    plugins: [hoverLinePlugin],
     data: {
       labels: share.dates,
-      datasets: langs.map(lang => ({
+      datasets: shareLangs.map(lang => ({
         label: lang,
         data: share.languages[lang],
         borderColor: LANG_COLORS[lang] || '#aaa',
@@ -387,23 +776,55 @@ async function buildSOCharts() {
     },
     options: {
       maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: { labels: { color: '#c0c0c0', font: { size: 10 }, boxWidth: 12 } },
-        annotation: { annotations: { aiLine: AI_ANNOTATION } }
+        legend: { labels: { color: '#c0c0c0', font: { size: 9 }, boxWidth: 8, padding: 8 } },
+        annotation: { annotations: { ai: AI_ANNOTATION } },
+        tooltip: {
+          callbacks: {
+            title(items) {
+              if (!items.length) return '';
+              const ql = quarterLabel(items[0].label);
+              const next = nextSlot;
+              shareLabel.textContent =
+                `Language Share Over Time — ${ql}  ·  click to set ${next}`;
+              return ql;
+            }
+          }
+        }
+      },
+      onHover(event, elements, chart) {
+        chart.canvas.style.cursor = 'crosshair';
+      },
+      onClick(event, elements, chart) {
+        const pts = chart.getElementsAtEventForMode(
+          event.native, 'index', { intersect: false }, false
+        );
+        if (pts.length) onShareClick(pts[0].index);
       },
       scales: {
-        x: { ...axisDefaults(), ticks: { color: '#8b90a8', maxTicksLimit: 10, font: { size: 10 } } },
-        y: { ...axisDefaults(), ticks: { callback: v => v.toFixed(1) + '%' } }
+        x: xAxis({ maxTicksLimit: 10 }),
+        y: yAxis({ callback: v => v.toFixed(1) + '%' }),
       }
     }
   });
+
+  document.getElementById('chart-share').addEventListener('mouseleave', () => {
+    shareLabel.textContent = 'Language Share Over Time — click to compare two points';
+  });
 }
 
-// ── LMI Charts ────────────────────────────────────────────────────────────────
-async function buildLMICharts() {
-  const data = await fetch('/api/lmi/scores').then(r => r.json());
-  if (!data.length) return;
+// ── LMI Charts ─────────────────────────────────────────────────────────────────
+let lmiScoresChart    = null;
+let lmiBreakdownChart = null;
 
+function buildLMICharts() {
+  const data = DATA.lmi;
+  if (!data.length) return;
+  renderLMICharts(data);
+}
+
+function renderLMICharts(data) {
   const langs     = data.map(d => d.language);
   const scores    = data.map(d => d.composite_score);
   const colors    = data.map(d => d.color);
@@ -417,54 +838,83 @@ async function buildLMICharts() {
     score_tiobe_rating:     'TIOBE Index (10%)',
   };
 
-  // Composite score bar
-  new Chart(document.getElementById('chart-lmi-scores'), {
-    type: 'bar',
-    data: {
-      labels: langs,
-      datasets: [{
-        label: 'Composite Score',
-        data: scores,
-        backgroundColor: colors.map(c => c + 'cc'),
-        borderColor: colors,
-        borderWidth: 1,
-        borderRadius: 4,
-      }]
-    },
-    options: {
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ...axisDefaults() },
-        y: { ...axisDefaults(), max: 100, ticks: { callback: v => v } }
-      }
-    }
-  });
+  const ticksCfg = { autoSkip: false, maxRotation: 40, minRotation: 0 };
 
-  // Stacked breakdown
-  new Chart(document.getElementById('chart-lmi-breakdown'), {
-    type: 'bar',
-    data: {
-      labels: langs,
-      datasets: scoreCols.map((col, i) => ({
-        label: SOURCE_NAMES[col] || col,
-        data: data.map(d => d[col]),
-        backgroundColor: SOURCE_COLORS[i],
-        borderWidth: 0,
-      }))
-    },
-    options: {
-      plugins: {
-        legend: { labels: { color: '#c0c0c0', font: { size: 10 }, boxWidth: 12 } }
+  if (lmiScoresChart) {
+    lmiScoresChart.data.labels                       = langs;
+    lmiScoresChart.data.datasets[0].data             = scores;
+    lmiScoresChart.data.datasets[0].backgroundColor = colors.map(c => c + 'bb');
+    lmiScoresChart.data.datasets[0].borderColor      = colors;
+    lmiScoresChart.update();
+  } else {
+    lmiScoresChart = new Chart(document.getElementById('chart-lmi-scores'), {
+      type: 'bar',
+      data: {
+        labels: langs,
+        datasets: [{
+          label: 'Composite Score',
+          data: scores,
+          backgroundColor: colors.map(c => c + 'bb'),
+          borderColor: colors,
+          borderWidth: 1,
+          borderRadius: 4,
+        }]
       },
-      scales: {
-        x: { ...axisDefaults(), stacked: true },
-        y: { ...axisDefaults(), stacked: true, ticks: { callback: v => v } }
+      options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: xAxis(ticksCfg), y: yAxis({ max: 100 }) }
       }
-    }
-  });
+    });
+  }
+
+  if (lmiBreakdownChart) {
+    lmiBreakdownChart.data.labels = langs;
+    scoreCols.forEach((col, i) => {
+      lmiBreakdownChart.data.datasets[i].data = data.map(d => d[col]);
+    });
+    lmiBreakdownChart.update();
+  } else {
+    lmiBreakdownChart = new Chart(document.getElementById('chart-lmi-breakdown'), {
+      type: 'bar',
+      data: {
+        labels: langs,
+        datasets: scoreCols.map((col, i) => ({
+          label: SOURCE_NAMES[col] || col,
+          data: data.map(d => d[col]),
+          backgroundColor: SOURCE_COLORS[i],
+          borderWidth: 0,
+        }))
+      },
+      options: {
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#c0c0c0', font: { size: 10 }, boxWidth: 10, padding: 10 } }
+        },
+        scales: {
+          x: { ...xAxis(ticksCfg), stacked: true },
+          y: { ...yAxis(), stacked: true },
+        }
+      }
+    });
+  }
 }
 
-// ── LMI Table interactions ────────────────────────────────────────────────────
+// ── LMI interactions ───────────────────────────────────────────────────────────
+const DEFAULT_WEIGHTS = { adzuna_total: 35, github_octoverse: 30, so_survey_usage: 25, tiobe_rating: 10 };
+
+function resetWeights() {
+  document.querySelectorAll('.slider-row').forEach(row => {
+    const input = row.querySelector('input');
+    const key   = row.dataset.source;
+    input.value = DEFAULT_WEIGHTS[key] ?? input.value;
+    row.querySelector('.w-display').textContent = input.value + '%';
+  });
+  document.getElementById('weight-total').textContent = 'Total: 100%';
+  document.getElementById('weight-total').className = 'weight-total';
+  recalculate();
+}
+
 function updateWeight(input) {
   input.closest('.slider-row').querySelector('.w-display').textContent = input.value + '%';
   const total = [...document.querySelectorAll('.slider-row input')]
@@ -480,12 +930,14 @@ async function recalculate() {
     weights[row.dataset.source] = parseInt(row.querySelector('input').value) / 100;
   });
   const res  = await fetch('/api/recalculate', {
-    method: 'POST', headers: {'Content-Type': 'application/json'},
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(weights),
   });
   const data = await res.json();
   if (data.error) { alert(data.error); return; }
   renderTable(data.table);
+  if (data.scores) renderLMICharts(data.scores);
 }
 
 function renderTable(rows) {
@@ -493,7 +945,12 @@ function renderTable(rows) {
     <tr onclick="selectLanguage('${row.language}')" data-lang="${row.language}">
       <td style="color:#8b90a8">${row.rank}</td>
       <td>${row.language}</td>
-      <td><span class="score-bar" style="width:${row.composite_score * 0.7}px"></span>${row.composite_score}</td>
+      <td>
+        <span style="display:inline-block;width:${Math.min(row.composite_score * 0.5, 60)}px;
+                     height:5px;background:#5c6cfa;border-radius:3px;
+                     vertical-align:middle;margin-right:7px"></span>
+        ${row.composite_score.toFixed(1)}
+      </td>
       <td><span class="badge" style="background:${row.color}22;color:${row.color}">${row.lifecycle}</span></td>
     </tr>`).join('');
 }
@@ -501,38 +958,218 @@ function renderTable(rows) {
 async function selectLanguage(lang) {
   document.querySelectorAll('tr[data-lang]').forEach(r => r.classList.remove('selected'));
   document.querySelectorAll(`tr[data-lang="${lang}"]`).forEach(r => r.classList.add('selected'));
+
   const data = await fetch(`/api/language/${encodeURIComponent(lang)}`).then(r => r.json());
   if (data.error) return;
 
-  document.getElementById('detail-cards').innerHTML = `
-    <div class="card">
-      <div class="label">Composite Score</div>
+  document.getElementById('detail-title').textContent =
+    lang.charAt(0).toUpperCase() + lang.slice(1) + ' — source breakdown';
+
+  document.getElementById('detail-stats').innerHTML = `
+    <div class="stat-card">
+      <div class="label">Score</div>
       <div class="value">${data.composite_score}</div>
-      <div class="sub">out of 100</div>
     </div>
-    <div class="card">
+    <div class="stat-card">
       <div class="label">Rank</div>
       <div class="value">#${data.rank}</div>
-      <div class="sub">of ${document.querySelectorAll('tr[data-lang]').length}</div>
     </div>
-    <div class="card">
+    <div class="stat-card">
       <div class="label">Lifecycle</div>
-      <div class="value" style="color:${data.color};font-size:1rem;padding-top:6px">${data.lifecycle}</div>
+      <div class="value" style="font-size:0.9rem;color:${data.color};padding-top:4px">${data.lifecycle}</div>
     </div>`;
 
-  if (Object.keys(data.breakdown).length) {
-    document.getElementById('breakdown-bars').innerHTML = Object.entries(data.breakdown)
-      .map(([src, d]) => `
-        <div class="bar-row">
-          <span class="bar-label">${d.label}</span>
-          <div class="bar-track"><div class="bar-fill" style="width:${d.normalized}%"></div></div>
-          <span class="bar-val">${d.normalized}</span>
-        </div>`).join('');
-    document.getElementById('breakdown').style.display = 'block';
-  }
+  document.getElementById('detail-bars').innerHTML = Object.entries(data.breakdown)
+    .map(([, d]) => `
+      <div class="bar-row">
+        <span class="bar-label">${d.label}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${d.normalized}%"></div></div>
+        <span class="bar-val">${d.normalized}</span>
+      </div>`).join('');
+
+  document.getElementById('detail-panel').classList.add('visible');
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────────
+// ── SO Decline 2 Charts ────────────────────────────────────────────────────────
+function buildSO2Charts() {
+  const { per_language: perLang, momentum, matrix, correlation: corr,
+          regression, pearson_r: pearsonR, thresholds } = DATA.so2;
+
+  // 1. Monthly posts per language (tab20 colors from Python)
+  new Chart(document.getElementById('chart-per-lang'), {
+    type: 'line',
+    data: {
+      labels: perLang.dates,
+      datasets: perLang.langs.map((lang, i) => ({
+        label: lang,
+        data: perLang.languages[lang],
+        borderColor: perLang.colors[i],
+        backgroundColor: 'transparent',
+        borderWidth: 1.5, pointRadius: 0, tension: 0.3,
+      }))
+    },
+    options: {
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#c0c0c0', font: { size: 9 }, boxWidth: 8, padding: 8 } },
+        annotation: { annotations: { ai: AI_ANNOTATION } },
+      },
+      scales: {
+        x: xAxis({ maxTicksLimit: 10 }),
+        y: yAxis({ callback: v => v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v }),
+      },
+    }
+  });
+
+  // 2. Momentum score (horizontal bar, RdYlGn gradient from Python, value datalabels)
+  new Chart(document.getElementById('chart-momentum'), {
+    type: 'bar',
+    plugins: [ChartDataLabels],
+    data: {
+      labels: momentum.languages,
+      datasets: [{ data: momentum.values, backgroundColor: momentum.colors, borderRadius: 3 }]
+    },
+    options: {
+      indexAxis: 'y',
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        datalabels: {
+          anchor: 'end',
+          align: ctx => ctx.dataset.data[ctx.dataIndex] >= 0 ? 'right' : 'left',
+          color: '#c0c0c0',
+          font: { size: 9 },
+          formatter: v => (v > 0 ? '+' : '') + v.toFixed(1) + '%',
+        },
+        annotation: { annotations: {
+          zero: { type: 'line', scaleID: 'x', value: 0, borderColor: '#8b90a8', borderWidth: 1 },
+          avg: {
+            type: 'line', scaleID: 'x', value: momentum.average,
+            borderColor: '#f0c040', borderWidth: 1.5, borderDash: [4, 3],
+            label: { display: true, content: `avg ${momentum.average}%`,
+                     color: '#f0c040', font: { size: 9 }, position: 'end' }
+          }
+        }}
+      },
+      scales: {
+        x: yAxis({ callback: v => v + '%' }),
+        y: xAxis({ autoSkip: false }),
+      }
+    }
+  });
+
+  // 3. Correlation scatter (language labels, regression line, Pearson r in title)
+  const corrDatasets = [{
+    type: 'scatter',
+    label: 'Languages',
+    data: corr.map(d => ({ x: d.momentum, y: d.job_score, label: d.language })),
+    backgroundColor: corr.map(d => (LANG_COLORS[d.language] || '#aaa') + 'cc'),
+    pointRadius: 7, pointHoverRadius: 9,
+    datalabels: {
+      formatter: v => v.label,
+      color: '#c0c0c0', font: { size: 8 }, align: 'right', offset: 5,
+    },
+  }];
+
+  if (regression) {
+    corrDatasets.push({
+      type: 'line',
+      label: 'Regression',
+      data: [{ x: regression.x[0], y: regression.y[0] }, { x: regression.x[1], y: regression.y[1] }],
+      borderColor: '#f0c040', borderWidth: 1.5, borderDash: [4, 3],
+      pointRadius: 0, fill: false,
+      datalabels: { display: false },
+    });
+  }
+
+  const corrAnnotations = {};
+  if (regression) {
+    const midX = (regression.x[0] + regression.x[1]) / 2;
+    const midY = (regression.y[0] + regression.y[1]) / 2;
+    corrAnnotations.regressionLabel = {
+      type: 'label',
+      xValue: midX, yValue: midY,
+      content: ['OLS regression line'],
+      color: '#f0c040', font: { size: 9 }, yAdjust: -14,
+    };
+  }
+
+  new Chart(document.getElementById('chart-correlation'), {
+    type: 'scatter',
+    plugins: [ChartDataLabels],
+    data: { datasets: corrDatasets },
+    options: {
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        title: {
+          display: true,
+          text: `r = ${pearsonR ?? 'n/a'}  —  weak negative correlation`,
+          color: '#8b90a8', font: { size: 10, style: 'italic' },
+          padding: { bottom: 0 },
+        },
+        subtitle: {
+          display: true,
+          text: 'Languages declining fastest on SO have the highest job market demand — SO is an unreliable hiring signal',
+          color: '#8b90a8', font: { size: 9 },
+          padding: { bottom: 10 },
+        },
+        tooltip: { callbacks: { label: ctx => ctx.raw.label ? `${ctx.raw.label}: momentum ${ctx.raw.x}%, jobs ${ctx.raw.y}` : '' } },
+        annotation: { annotations: corrAnnotations },
+      },
+      scales: {
+        x: { ...yAxis({ callback: v => v + '%' }), title: { display: true, text: 'SO Momentum (%)', color: '#8b90a8', font: { size: 10 } } },
+        y: { ...yAxis(), title: { display: true, text: 'Job Score (raw Adzuna postings)', color: '#8b90a8', font: { size: 10 } } },
+      }
+    }
+  });
+
+  // 4. Lifecycle matrix scatter (language labels on dots, threshold reference lines)
+  const byLifecycle = {};
+  matrix.forEach(d => {
+    if (!byLifecycle[d.lifecycle]) byLifecycle[d.lifecycle] = [];
+    byLifecycle[d.lifecycle].push({ x: d.volume, y: d.momentum, label: d.language });
+  });
+
+  new Chart(document.getElementById('chart-lifecycle'), {
+    type: 'scatter',
+    plugins: [ChartDataLabels],
+    data: {
+      datasets: Object.entries(byLifecycle).map(([lc, pts]) => ({
+        label: lc, data: pts,
+        backgroundColor: (LIFECYCLE_COLORS[lc] || '#aaa') + 'cc',
+        pointRadius: 7, pointHoverRadius: 9,
+      }))
+    },
+    options: {
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#c0c0c0', font: { size: 9 }, boxWidth: 8, padding: 8 } },
+        datalabels: {
+          formatter: v => v.label,
+          color: '#c0c0c0', font: { size: 8 }, align: 'right', offset: 5,
+        },
+        tooltip: { callbacks: { label: ctx => `${ctx.raw.label}: vol ${(ctx.raw.x/1000).toFixed(0)}K, mom ${ctx.raw.y}%` } },
+        annotation: { annotations: {
+          momMed: {
+            type: 'line', scaleID: 'y', value: thresholds.mom_med,
+            borderColor: '#8b90a8', borderWidth: 1, borderDash: [4, 3],
+            label: { display: true, content: 'median mom', color: '#8b90a8', font: { size: 8 }, position: 'start' }
+          },
+        }}
+      },
+      scales: {
+        x: { ...yAxis({ callback: v => v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(0)+'K' : v }),
+             title: { display: true, text: 'Total Posts', color: '#8b90a8', font: { size: 10 } } },
+        y: { ...yAxis({ callback: v => v + '%' }),
+             title: { display: true, text: 'Momentum (%)', color: '#8b90a8', font: { size: 10 } } },
+      }
+    }
+  });
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────────
 buildSOCharts();
 {% if not no_data %}buildLMICharts();{% endif %}
 </script>
