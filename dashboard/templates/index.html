@@ -159,6 +159,15 @@
 
     .chart-wrap { position: relative; flex: 1; min-height: 0; }
 
+    .lifecycle-legend {
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+      font-size: 0.72rem; color: #8b90a8; margin-bottom: 8px; flex-shrink: 0;
+    }
+    .lc-dot {
+      display: inline-block; width: 10px; height: 10px;
+      border-radius: 50%; margin-right: 4px; vertical-align: middle;
+    }
+
     /* SO rows — vh heights matching LMI style */
     #so-section > .chart-box { flex-shrink: 0; }
     #so-section > .chart-box .chart-wrap { flex: none; height: 52vh; }
@@ -439,6 +448,13 @@
       <div class="lmi-chart-row">
         <div class="chart-box">
           <h3>Composite Score by Language</h3>
+          <div class="lifecycle-legend">
+            <span class="lc-dot" style="background:#5c6cfa"></span>Dominant
+            <span class="lc-dot" style="background:#4ecb71"></span>Rising
+            <span class="lc-dot" style="background:#f0c040"></span>Mature
+            <span class="lc-dot" style="background:#f07070"></span>Declining
+            <span class="lc-dot" style="background:#aaaaaa"></span>Niche
+          </div>
           <div class="chart-wrap"><canvas id="chart-lmi-scores"></canvas></div>
         </div>
 
