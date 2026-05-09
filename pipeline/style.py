@@ -32,7 +32,7 @@ PURPLE = '#9b59b6'  # tertiary accent
 # ── Lifecycle colour map ───────────────────────────────────────────────────────
 # Maps each lifecycle label to its display colour — used in scatter plots and bar charts
 LIFECYCLE = {
-    'Dominant':  '#5bc0f8',
+    'Dominant':  BLUE,
     'Rising':    GREEN,
     'Mature':    AMBER,
     'Declining': RED,
