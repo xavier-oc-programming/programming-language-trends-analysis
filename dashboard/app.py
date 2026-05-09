@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'pipeline'))
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 from processing.score import compute_index, DEFAULT_WEIGHTS
+from style import LIFECYCLE as LIFECYCLE_COLORS, BG, GREEN, AMBER, RED, BLUE, MARK, TEXT, PANEL, BORDER
 
 app = Flask(__name__)
 
@@ -20,14 +21,6 @@ NORMALIZED_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'process
 SO_CSV_PATH     = os.path.join(os.path.dirname(__file__), '..', 'data', 'raw', 'so', 'QueryResults.csv')
 
 AI_INFLECTION = '2022-11-01'
-
-LIFECYCLE_COLORS = {
-    'Dominant':  '#5bc0f8',
-    'Rising':    '#4ecb71',
-    'Mature':    '#f0c040',
-    'Declining': '#f07070',
-    'Niche':     '#aaaaaa',
-}
 
 SOURCE_LABELS = {
     'adzuna_total':     'Job Postings',
