@@ -893,7 +893,7 @@ function renderLMICharts(data) {
         },
         scales: {
           x: { ...xAxis(ticksCfg), stacked: true },
-          y: { ...yAxis(), stacked: true },
+          y: { ...yAxis({ max: 100 }), stacked: true },
         }
       }
     });
