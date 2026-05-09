@@ -1038,7 +1038,13 @@ function buildSO2Charts() {
         datalabels: {
           anchor: 'end',
           align: ctx => ctx.dataset.data[ctx.dataIndex] >= 0 ? 'right' : 'left',
-          color: '#c0c0c0',
+          color: ctx => {
+            const hex = momentum.colors[ctx.dataIndex].replace('#', '');
+            const r = parseInt(hex.slice(0, 2), 16) / 255;
+            const g = parseInt(hex.slice(2, 4), 16) / 255;
+            const b = parseInt(hex.slice(4, 6), 16) / 255;
+            return (0.299 * r + 0.587 * g + 0.114 * b) > 0.55 ? '#111111' : '#ffffff';
+          },
           font: { size: 9 },
           formatter: v => (v > 0 ? '+' : '') + v.toFixed(1) + '%',
         },
