@@ -46,20 +46,20 @@ def run():
 
     df = pd.read_csv(io.StringIO(r.text))
 
-    # Keep only programming languages we track
+    # Map Octoverse's title-case names to our lowercase keys, then drop non-tracked languages
     df['language_lower'] = df['language'].map(OCTOVERSE_NAME_MAP)
     df = df[
         (df['language_type'] == 'programming') &
         (df['language_lower'].isin(LANGUAGES))
     ].copy()
 
-    # Aggregate globally (sum num_pushers across all countries per language per quarter)
+    # Octoverse breaks counts down by country — sum globally so one row per language per quarter
     global_df = (
         df.groupby(['language_lower', 'year', 'quarter'], as_index=False)['num_pushers']
           .sum()
     )
 
-    # Build a date string from year+quarter for the output format
+    # Convert year + quarter number to a first-of-month date string (Q1=Jan, Q2=Apr, Q3=Jul, Q4=Oct)
     global_df['date'] = global_df.apply(
         lambda r: f"{int(r['year'])}-{int(r['quarter']) * 3 - 2:02d}-01", axis=1
     )
@@ -73,7 +73,7 @@ def run():
     os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
     output.to_csv(OUTPUT_PATH, index=False)
 
-    # Summary: latest quarter per language
+    # Print a quick sanity-check snapshot of the most recent quarter
     latest = output.sort_values('date').groupby('language').last().reset_index()
     latest = latest.sort_values('metric_value', ascending=False)
 

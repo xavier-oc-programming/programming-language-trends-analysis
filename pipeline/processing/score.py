@@ -44,17 +44,15 @@ def classify_lifecycle_batch(scores: 'pd.Series') -> list[str]:
     50–75%     → Declining
     Bottom 25% → Niche
     """
+    # Percentile thresholds move with the data, so labels stay meaningful as scores shift
     p75 = float(np.percentile(scores, 75))
     p50 = float(np.percentile(scores, 50))
     p25 = float(np.percentile(scores, 25))
 
     def label(s):
-        if s >= p75:
-            return 'Dominant'
-        if s >= p50:
-            return 'Mature'
-        if s >= p25:
-            return 'Declining'
+        if s >= p75:  return 'Dominant'
+        if s >= p50:  return 'Mature'
+        if s >= p25:  return 'Declining'
         return 'Niche'
 
     return [label(s) for s in scores]
@@ -64,6 +62,7 @@ def compute_index(weights: dict = None) -> pd.DataFrame:
     if weights is None:
         weights = DEFAULT_WEIGHTS
 
+    # Guard: weights must sum to 1.0 or the composite scores will be off-scale
     total_weight = sum(weights.values())
     if abs(total_weight - 1.0) > 0.01:
         raise ValueError(f'Weights must sum to 1.0, got {total_weight:.3f}')
@@ -72,6 +71,7 @@ def compute_index(weights: dict = None) -> pd.DataFrame:
         raise FileNotFoundError(f'Run normalize.py first: {NORMALIZED_PATH}')
 
     norm = pd.read_csv(NORMALIZED_PATH)
+    # Pivot so each row is a language and each column is a source's normalised score
     pivot = norm.pivot(index='language', columns='source', values='normalized_score').fillna(0)
     pivot = pivot.reindex(LANGUAGES, fill_value=0)
 
@@ -81,7 +81,7 @@ def compute_index(weights: dict = None) -> pd.DataFrame:
     for source, weight in weights.items():
         if source in pivot.columns:
             col = pivot[source]
-            scores += col * weight
+            scores += col * weight           # weighted contribution to the composite
             breakdown[source] = (col * weight).round(2)
         else:
             print(f'  WARNING: source "{source}" not in normalized data — skipping')
@@ -94,6 +94,7 @@ def compute_index(weights: dict = None) -> pd.DataFrame:
         'date':            str(date.today()),
     })
 
+    # Store each source's individual weighted contribution for the breakdown chart
     for source in DEFAULT_WEIGHTS:
         result[f'score_{source}'] = breakdown.get(source, pd.Series(0.0, index=range(len(LANGUAGES)))).values
 

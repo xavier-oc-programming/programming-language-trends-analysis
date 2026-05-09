@@ -18,29 +18,29 @@ from processing import normalize, score
 
 def run(skip_github=False, skip_adzuna=False, skip_tiobe=False,
         skip_so=False, only_score=False):
-
+    # Skip all fetching and just re-run the scoring on whatever is already on disk
     if not only_score:
         if not skip_github:
             print('\n── GitHub ─────────────────────────────')
-            github_fetch.run()
+            github_fetch.run()        # downloads Octoverse CSV from GitHub
 
         if not skip_adzuna:
             print('\n── Adzuna ─────────────────────────────')
-            adzuna_fetch.run()
+            adzuna_fetch.run()        # hits the Adzuna REST API for job counts
 
         if not skip_so:
             print('\n── Stack Overflow Survey ───────────────')
-            so_survey_parse.run()
+            so_survey_parse.run()     # reads locally-saved survey CSVs
 
         if not skip_tiobe:
             print('\n── TIOBE ───────────────────────────────')
-            tiobe_scrape.run()
+            tiobe_scrape.run()        # scrapes tiobe.com, falls back to hardcoded if blocked
 
     print('\n── Normalise ───────────────────────────')
-    normalize.run()
+    normalize.run()   # min-max scales each source to 0–100 so they can be weighted together
 
     print('\n── Score ───────────────────────────────')
-    result = score.run()
+    result = score.run()   # applies weights, sums to composite, assigns lifecycle labels
 
     print('\n── Done ────────────────────────────────')
     print(f'Index computed for {len(result)} languages.')
@@ -48,6 +48,7 @@ def run(skip_github=False, skip_adzuna=False, skip_tiobe=False,
 
 
 if __name__ == '__main__':
+    # Parse flags from the command line, e.g. python run.py --skip-tiobe --only-score
     args = sys.argv[1:]
     run(
         skip_github=('--skip-github' in args),

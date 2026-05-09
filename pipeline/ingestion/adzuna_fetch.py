@@ -45,7 +45,10 @@ SEARCH_TERMS = {
 
 
 def fetch_job_count(language: str, country: str) -> int | None:
+    # Use curated search terms instead of bare language names to avoid irrelevant matches
+    # (e.g. searching "r" alone returns garbage; "r statistics data science" is precise)
     term = SEARCH_TERMS.get(language.lower(), f'{language.lower()} developer')
+    # results_per_page=1 — we only need the total count, not the actual listings
     url = (
         f'https://api.adzuna.com/v1/api/jobs/{country}/search/1'
         f'?app_id={APP_ID}&app_key={APP_KEY}'
@@ -76,15 +79,15 @@ def run():
                 rows.append({
                     'language':     lang.lower(),
                     'metric_value': count,
-                    'source':       f'adzuna_{country}',
+                    'source':       f'adzuna_{country}',   # per-country row
                     'date':         today,
                 })
                 print(f'  {lang:<14} {count:>8,} jobs')
-            time.sleep(0.5)
+            time.sleep(0.5)   # stay well under the Adzuna rate limit
 
     df = pd.DataFrame(rows)
 
-    # Aggregate across countries into a single score per language
+    # Sum per-country counts into a single global total per language
     agg = (
         df.groupby('language')['metric_value']
           .sum()
@@ -92,6 +95,7 @@ def run():
           .assign(source='adzuna_total', date=today)
     )
 
+    # Save both the per-country rows and the aggregate — normalizer uses adzuna_total
     combined = pd.concat([df, agg], ignore_index=True)
     os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
     combined.to_csv(OUTPUT_PATH, index=False)

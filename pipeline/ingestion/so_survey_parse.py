@@ -47,6 +47,8 @@ def language_pct(series: pd.Series, language: str) -> float:
     if total == 0:
         return 0.0
     lang_lower = language.lower()
+    # Split each respondent's answer on ';' and check for an exact match
+    # (prevents short names like 'r' or 'c' matching inside longer language names)
     def row_matches(x):
         tokens = [t.strip().lower() for t in str(x).split(';')]
         return lang_lower in tokens
@@ -58,6 +60,7 @@ def parse_survey(filepath: str, year: int) -> pd.DataFrame:
     print(f'  Parsing {year}...')
     df = pd.read_csv(filepath, low_memory=False)
 
+    # Column names changed between survey years — try each known variant
     have_col = find_col(df, HAVE_WORKED_COLS)
     want_col = find_col(df, WANT_TO_WORK_COLS)
 
@@ -70,12 +73,14 @@ def parse_survey(filepath: str, year: int) -> pd.DataFrame:
         have_pct = language_pct(df[have_col], lang)
         want_pct = language_pct(df[want_col], lang) if want_col else None
 
+        # 'usage' = languages respondents worked with this year (what we score on)
         rows.append({
             'language':     lang,
             'metric_value': have_pct,
             'source':       'so_survey_usage',
             'date':         f'{year}-01-01',
         })
+        # 'desired' = languages they want to use next year (stored but not used in composite)
         if want_pct is not None:
             rows.append({
                 'language':     lang,

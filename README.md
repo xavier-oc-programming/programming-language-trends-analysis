@@ -156,6 +156,7 @@ pipeline/run.py
 │
 ├── pipeline/
 │   ├── run.py                              # Orchestrator — runs all ingestion + scoring
+│   ├── style.py                            # Shared chart constants + helpers (BG, GREEN, style_ax, fmt_k …)
 │   ├── ingestion/
 │   │   ├── adzuna_fetch.py                 # Adzuna Jobs API (cached)
 │   │   ├── github_fetch.py                 # GitHub Octoverse public dataset
@@ -430,11 +431,24 @@ All charts are committed to `plots/` and visible without running the code.
 ### Correlation & Regression
 `scipy.stats.linregress(x, y)` → `slope, intercept, r, p, se` · `np.linspace(x.min(), x.max(), 100)` · `slope * x_line + intercept` · Pearson r interpretation
 
+### Shared Style Module (`pipeline/style.py`)
+To eliminate repetition across notebooks and pipeline scripts, all colour constants and chart helpers live in a single importable module. Both notebooks load it with `from style import *`.
+
+| Export | What it is |
+|--------|------------|
+| `BG`, `PANEL`, `BORDER` | Dark-theme background hex values |
+| `TEXT`, `TEXT_DIM`, `WHITE` | Text colour hierarchy |
+| `BLUE`, `GREEN`, `AMBER`, `RED`, `GREY`, `MARK`, `ORANGE`, `PURPLE` | Named accent colours — used in place of hex literals throughout all charts |
+| `LIFECYCLE` | `dict` mapping lifecycle label → colour — used by scatter plots, bar charts, and dashboard |
+| `style_ax(ax, fig)` | Applies the full 8-line dark-theme boilerplate in one call — background, tick colour, spine colour, label colour |
+| `fmt_k(x, _)` | Axis tick formatter: `1500 → '1k'`, `1_500_000 → '1.5M'` |
+| `fmt_pct(x, _)` | Axis tick formatter: `-7.6 → '-7.6%'` |
+
 ### Colormaps & Colour Gradients
 `plt.cm.tab20(range(n))` · `matplotlib.cm.RdYlGn(norm_value)` · `matplotlib.colors.Normalize(vmin, vmax)` · `#{:02x}{:02x}{:02x}` hex conversion · `mpatches.Patch(color, label)` custom legend
 
 ### Matplotlib Charting
-`fig, ax = plt.subplots(figsize=…)` · `ax.plot()` · `ax.fill_between()` · `ax.bar()` · `ax.barh()` · `ax.scatter()` · `ax.axvline()` · `ax.axhline()` · `ax.annotate()` · `ax.text()` · `ax.legend()` · `mticker.FuncFormatter(lambda x, _: …)` · `ax.set_facecolor()` · `fig.patch.set_facecolor()` · `ax.tick_params(colors=…)` · `plt.tight_layout()` · `plt.savefig(dpi=150, facecolor=…)`
+`fig, ax = plt.subplots(figsize=…)` · `ax.plot()` · `ax.fill_between()` · `ax.bar()` · `ax.barh()` · `ax.scatter()` · `ax.axvline()` · `ax.axhline()` · `ax.annotate()` · `ax.text()` · `ax.legend()` · `mticker.FuncFormatter(lambda x, _: …)` · `style_ax(ax, fig)` (shared helper) · `plt.tight_layout()` · `plt.savefig(dpi=150, facecolor=…)`
 
 ### Flask Dashboard
 `Flask(__name__)` · `render_template()` · `jsonify()` · `request.get_json()` · `{{ data | tojson }}` (Jinja2 server-side injection) · `@app.route(methods=['POST'])` · `scipy.stats.linregress` at page load · colormap hex conversion in Python before template render

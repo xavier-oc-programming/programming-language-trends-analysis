@@ -69,6 +69,7 @@ def scrape_tiobe() -> list[dict]:
 
     soup = BeautifulSoup(r.text, 'html.parser')
 
+    # Try to find the ratings table by header text first, then fall back to largest table
     table = None
     for t in soup.find_all('table'):
         headers = [th.get_text(strip=True).lower() for th in t.find_all('th')]
@@ -77,6 +78,7 @@ def scrape_tiobe() -> list[dict]:
             break
 
     if not table:
+        # Secondary heuristic: the main table has many rows (one per language)
         for t in soup.find_all('table'):
             rows = t.find_all('tr')
             if len(rows) > 10:
@@ -89,11 +91,13 @@ def scrape_tiobe() -> list[dict]:
     rows = []
     today = str(date.today())
 
-    for tr in table.find_all('tr')[1:]:
+    for tr in table.find_all('tr')[1:]:  # skip the header row
         cells = [td.get_text(strip=True) for td in tr.find_all('td')]
         if len(cells) < 4:
             continue
 
+        # Walk cells left-to-right: first text-only cell is the language name,
+        # first cell containing '%' after that is the rating percentage
         lang_raw = None
         rating_str = None
         for i, cell in enumerate(cells):
@@ -106,6 +110,7 @@ def scrape_tiobe() -> list[dict]:
         if not lang_raw or not rating_str:
             continue
 
+        # Normalise language names (e.g. "Assembly Language" → "assembly")
         lang = LANGUAGE_MAP.get(lang_raw.lower(), lang_raw.lower())
 
         try:
@@ -143,6 +148,7 @@ def run():
         df = pd.DataFrame(rows)
         tracked = df[df['language'].isin(LANGUAGES_WE_TRACK)].copy()
 
+        # If any high-profile language is missing, the scrape probably returned garbage — use fallback
         key_languages = {'python', 'java', 'c#', 'c++', 'javascript'}
         missing_key = key_languages - set(tracked['language'])
         if missing_key:
@@ -156,6 +162,7 @@ def run():
         print('Falling back to hardcoded ratings...')
         tracked = build_from_fallback()
 
+    # Languages not in the TIOBE top-50 get a 0 so they still appear in the output
     missing = LANGUAGES_WE_TRACK - set(tracked['language'])
     if missing:
         print(f'\nNot in TIOBE top-50 (will score as 0): {sorted(missing)}')

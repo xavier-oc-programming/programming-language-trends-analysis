@@ -26,8 +26,10 @@ LANGUAGES = [
 
 def min_max_scale(series: pd.Series) -> pd.Series:
     lo, hi = series.min(), series.max()
+    # If every value is identical there is no spread to scale, so return 50 for all
     if hi == lo:
         return pd.Series(50.0, index=series.index)
+    # Stretch the range so the lowest language scores 0 and the highest scores 100
     return (series - lo) / (hi - lo) * 100
 
 
@@ -40,7 +42,8 @@ def load_source(source_key: str, filepath: str) -> pd.Series | None:
     subset = df[df['source'] == source_key].copy()
 
     if subset.empty:
-        # For SO survey, take the most recent year's usage figures
+        # SO survey CSV contains both 'so_survey_usage' and 'so_survey_desired' rows —
+        # fall back to the most recent year if a direct key match returns nothing
         if 'so_survey' in source_key:
             df['date'] = pd.to_datetime(df['date'])
             latest = df['date'].max()
@@ -50,12 +53,13 @@ def load_source(source_key: str, filepath: str) -> pd.Series | None:
         print(f'  No rows for source={source_key}')
         return None
 
-    # If multiple dates, take the most recent
+    # When a source has multiple snapshots (e.g. quarterly GitHub data), only keep the latest
     if 'date' in subset.columns:
         subset['date'] = pd.to_datetime(subset['date'])
         latest = subset['date'].max()
         subset = subset[subset['date'] == latest]
 
+    # Average across any duplicate language rows, then fill missing languages with 0
     series = (
         subset.groupby('language')['metric_value']
               .mean()
@@ -72,6 +76,7 @@ def run():
         if raw is None:
             continue
 
+        # Scale raw values to 0–100 so different units (job counts vs % usage) are comparable
         scaled = min_max_scale(raw)
         for lang in LANGUAGES:
             rows.append({
