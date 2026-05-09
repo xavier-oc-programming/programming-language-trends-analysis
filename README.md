@@ -103,15 +103,15 @@ pipeline/run.py
     │   % of developers reporting daily use per language (134 MB CSV, not committed)
     │   so_survey_parsed.csv committed — sufficient to re-run the index
     │
-    └── TIOBE Index                     →  data/raw/tiobe/
-        Industry recognition ratings, scraped with hardcoded fallback
+    ├── TIOBE Index                     →  data/raw/tiobe/
+    │   Industry recognition ratings, scraped with hardcoded fallback
     │
     │  ── [Processing] ─────────────────────────────────────────────────────────
     ├── normalize.py   →  min-max scale each source independently to 0–100
     │                     output: data/processed/normalized.csv
     │
-    └── score.py       →  weighted composite sum + percentile lifecycle classification
-                          output: data/processed/index.csv
+    ├── score.py       →  weighted composite sum + percentile lifecycle classification
+    │                     output: data/processed/index.csv
     │
     │  ── [Analysis] ───────────────────────────────────────────────────────────
     │
@@ -125,19 +125,19 @@ pipeline/run.py
     │   ├── Lifecycle matrix — percentile classification, volume × momentum scatter
     │   └── SO vs job demand — linregress, Pearson r, anti-correlation test
     │
-    └── notebooks/02_language_market_index.ipynb
-        ├── LMI ranked scores — weighted bar, lifecycle colour coding
-        ├── Score breakdown — stacked bar showing per-source contribution
-        └── Sensitivity analysis — 4 weighting scenarios, ranking stability test
+    ├── notebooks/02_language_market_index.ipynb
+    │   ├── LMI ranked scores — weighted bar, lifecycle colour coding
+    │   ├── Score breakdown — stacked bar showing per-source contribution
+    │   └── Sensitivity analysis — 4 weighting scenarios, ranking stability test
     │
     │  ── [Dashboard] ──────────────────────────────────────────────────────────
     ├── app.py        →  compute_chart_data() runs all pandas/scipy at page load
     │                    DATA injected as {{ chart_data | tojson }} — no page-load fetches
     │                    tab20 + RdYlGn colormaps computed server-side in Python
     │
-    └── index.html    →  Chart.js v4 + annotation@3 + datalabels@2
-                         Three sections: SO Decline · SO Deep Dive · LMI
-                         Dynamic: POST /api/recalculate · GET /api/language/<lang>
+    ├── index.html    →  Chart.js v4 + annotation@3 + datalabels@2
+    │                    Three sections: SO Decline · SO Deep Dive · LMI
+    │                    Dynamic: POST /api/recalculate · GET /api/language/<lang>
     │
     │  ── [Output] ─────────────────────────────────────────────────────────────
     ├── plots/so_decline_analysis/    →  8 charts (PNG, 150 dpi)
